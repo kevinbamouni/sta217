@@ -41,9 +41,12 @@ library(cowplot)
 # MSCI data load
 msci <- read.csv(file = 'data/MSCI.csv')[ ,c('Date', 'Adj.Close')]
 msci$Date <- as.Date(msci$Date)
+<<<<<<< HEAD
 
 msci2 <- read.csv(file = 'data/MSCI.csv')[ ,c('Date', 'Adj.Close')]
 msci2$Date <- as.Date(msci$Date)
+=======
+>>>>>>> 11f38574f7794f1e8ba968a4b66734f8cdc0ed8e
 ```
 
 
@@ -79,6 +82,7 @@ p2 <- ggplot(msci_return, aes(x=index(msci_return), y=msci_return)) +
   geom_line( color="red") + 
   xlab("index") + ylab("return") + ggtitle("Rendement de l'indice MSCI") + theme_classic()
 
+<<<<<<< HEAD
 p3 <- ggplot(msci_return, aes(msci_return)) +
   geom_histogram( bins = 100, color="darkgreen", fill="white") +
   xlab("return") + ylab("frequence") + ggtitle("Rendement de l'indice MSCI") +
@@ -104,6 +108,21 @@ quantile(msci_return, probs = c(0, 0.0005, 0.005, 0.01, 0.025, 0.5, 0.975, 0.99,
 ```
 ```{r}
 qnorm(c(0, 0.0005, 0.005, 0.01, 0.025, 0.5, 0.975, 0.99, 0.995, 0.9995, 1),mean=mean(msci_return$msci_return),sd=sd(msci_return$msci_return))
+=======
+p3 <- ggplot(msci_return, aes(x=msci_return)) +
+  geom_histogram( bins = 100, color="darkgreen", fill="white") +
+  stat_function(fun = dnorm, args = list(mean(msci_return$msci_return), sd(msci_return$msci_return))) + 
+  xlab("return") + ylab("frequence") + ggtitle("Rendement de l'indice MSCI") + theme_classic()
+p3
+plot_grid(p1, p2, ncol = 1, align = "v")
+
+```
+
+
+```{r, echo = FALSE, fig.align = 'center', message=FALSE}
+#plot(msci)
+#hist(msci, breaks = 100)
+>>>>>>> 11f38574f7794f1e8ba968a4b66734f8cdc0ed8e
 ```
 
 
