@@ -1,0 +1,86 @@
+---
+documentclass: article
+title: "Calibration des chocs de capital de solvabilité requis avec expected shortfall."
+author: "Kevin BAMOUNI"
+date: "15/08/2020"
+geometry: margin=1in
+fontfamily: mathptmx
+fontsize: 12pt
+lang: fr-FR
+# spacing: double
+endnote: no
+citecolor: cyan
+output:
+  pdf_document:
+    df_print: kable
+    fig_width: 5
+    fig_height: 4
+    fig_caption: true
+    citation_package: natbib
+    latex_engine: lualatex
+bibliography: master.bib
+---
+
+
+CONSERVATOIRE NATIONAL DES ARTS ET METIERS
+EFAB
+MASTER 2 ACTUARIAT
+STA217 STATISTIQUES DU RISQUE
+
+
+# INTRODUCTION
+
+Academic workflow, certainly in political science, is at a crossroads. The *American Journal of Political Science* (*AJPS*) announced a (my words) ["show your work" initiative](http://ajps.org/2015/03/26/the-ajps-replication-policy-innovations-and-revisions/) in which authors who are tentatively accepted for publication at the journal must hand over the raw code and data that produced the results shown in the manuscript. The editorial team at *AJPS* then reproduces the code from the manuscript. Pending successful replication, the manuscript moves toward publication. The *AJPS* might be at the fore of this movement, and it could be the most aggressive among political science journals, but other journals in our field have signed the joint [Data Access & Research Transparency](http://www.dartstatement.org/) (DART) initiative. This, at a bare minimum, requires uploading code from quantitatively-oriented published articles to in-house directories hosted by the journal or to services like [Dataverse](http://dataverse.org/). 
+
+# 1. SOLVABILITE 2
+
+
+# 2. MODELE DE L'ARTICLE : ESPECTED SHORTFALL POUR LA CALIBRATION DES CHOCS DE CALCUL DU SCR (CSR)
+
+
+## DESCRIPTION
+
+
+## DONNEES
+
+
+## CALIBRATION DES CHOCS :
+
+
+```{r, echo = FALSE, fig.align = 'center'}
+
+msci <- read.csv(file = 'data/MSCI.csv')[ ,c('Date', 'Adj.Close')]
+msci$Date <- as.Date(msci$Date)
+msci <- diff(log(msci[,'Adj.Close']))
+plot(msci)
+hist(msci, breaks = 100)
+```
+
+
+
+### SCR ACTIONS
+
+
+### SCR TAUX
+
+
+### SCR LONGEVITE
+
+
+# 3. THEORIE DES VALEURS EXTREMES POUR LA CALIBRATION DES CHOCS
+
+
+# CONCLUSION
+
+
+# REFERENCES 
+
+
+# ANNEXES  avec codes, figures en plus etc.).
+
+
+```{r cars}
+summary(cars)
+```
+
+
