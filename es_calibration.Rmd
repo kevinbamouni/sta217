@@ -1,8 +1,8 @@
 ---
 documentclass: article
-title: "Calibration des chocs de capital de solvabilité requis avec expected shortfall."
+title: "Solvabilté II : Calibration des chocs de capital de solvabilité requis avec expected shortfall."
 author: "Kevin BAMOUNI"
-date: "15/08/2020"
+date: "01/09/2020"
 geometry: margin=1in
 fontfamily: mathptmx
 fontsize: 11pt
@@ -22,10 +22,11 @@ bibliography: master.bib
 ---
 
 
-CONSERVATOIRE NATIONAL DES ARTS ET METIERS
-EFAB
-MASTER 2 ACTUARIAT
-STA217 STATISTIQUES DU RISQUE
+Conservatoire National des Arts et Métiers (CNAM Paris) / EFAB  
+Master 2 Actuariat  
+STA217 Gestion quantitative du risque en finance et assurance  
+  
+Projet annuel basé sur l'article "Solvency II solvency capital requirement for life insurance companies based on expected shortfall" de Tim J. Boonen.
 
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
@@ -61,11 +62,11 @@ Academic workflow, certainly in political science, is at a crossroads. The *Amer
 ## DESCRIPTION
 
 
-## DONNEES
+## MODELE DE CALIBRATION DES CHOCS DE CAPITAL DE SOLVABILITE REQUIS
 
+### CALIBRATION DU CHOC SUR LES ACTIONS
 
-## CALIBRATION DES CHOCS :
-
+Calibration du choc scr sur les actions
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
 # Most basic bubble plot
@@ -80,6 +81,13 @@ p2 <- ggplot(msci_return, aes(x=index(msci_return), y=msci_return)) +
   geom_line( color="red") + 
   xlab("index") + ylab("return") + ggtitle("Rendement de l'indice MSCI") + theme_classic()
 
+plot_grid(p1, p2, ncol = 1, align = "v")
+
+```
+
+Distribution des rendements
+
+```{r, echo = FALSE, fig.align = 'center', message=FALSE}
 p3 <- ggplot(msci_return, aes(msci_return)) +
   geom_histogram( bins = 50, color="darkgreen", fill="white") +
   xlab("return") + ylab("frequence") + ggtitle("Rendement de l'indice MSCI") +
@@ -92,42 +100,38 @@ p4 <- ggplot(msci_return, aes(msci_return)) +
   xlab("return") + ylab("frequence") + ggtitle("Rendement de l'indice MSCI") +
   theme_classic()
 
-plot_grid(p1, p2, ncol = 1, align = "v")
-
-plot_grid(p3, p4, labels = c('A', 'B'), label_size = 12)
+plot_grid(p3, p4)
 
 ```
 
+Value at risque historique sur les données de rendements annualisées 
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
 # Calcul de la VAR historique des données
-histo_VAR <- quantile(msci_return, probs = c(0, 0.0005, 0.005, 0.01, 0.025, 0.5, 0.975, 0.99, 0.995, 0.9995, 1), na.rm = TRUE, names = TRUE, type = 1)
+histo_VAR <- round(quantile(msci_return, probs = c(0, 0.0005, 0.005, 0.01, 0.025, 0.5, 0.975, 0.99, 0.995, 0.9995, 1), na.rm = TRUE, names = TRUE, type = 1), 4)
 histo_VAR
 ```
 
+Value at risque d'une loi normale théorique
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
 # Calcul de la VAR théorique de la loi normale en supposant que les rendements suivent une loi normale
-theo_VAR <- qnorm(c(0, 0.0005, 0.005, 0.01, 0.025, 0.5, 0.975, 0.99, 0.995, 0.9995, 1),mean=mean(msci_return$msci_return),sd=sd(msci_return$msci_return))
+theo_VAR <- round(qnorm(c(0, 0.0005, 0.005, 0.01, 0.025, 0.5, 0.975, 0.99, 0.995, 0.9995, 1),mean=mean(msci_return$msci_return),sd=sd(msci_return$msci_return)), 4)
 theo_VAR
 ```
 
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
 # msci_return$msci_return[msci_return$msci_return<histo_VAR[3]]
-histo_ES <- mean(msci_return$msci_return[msci_return$msci_return<=histo_VAR[3]])
+histo_ES <- round(mean(msci_return$msci_return[msci_return$msci_return<=histo_VAR[3]]), 4)
 histo_ES
 ```
 
 
-
-### SCR ACTIONS
-
-
-### SCR TAUX
+### CALIBRATION DU CHOC SUR LES TAUX
 
 
-### SCR LONGEVITE
+### CALIBRATION DU CHOC SUR LA LONGEVITE
 
 
 # 3. THEORIE DES VALEURS EXTREMES POUR LA CALIBRATION DES CHOCS
