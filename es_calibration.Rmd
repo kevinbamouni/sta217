@@ -26,7 +26,7 @@ Conservatoire National des Arts et Métiers (CNAM Paris) / EFAB
 Master 2 Actuariat  
 STA217 Gestion quantitative du risque en finance et assurance  
   
-Projet annuel basé sur l'article "Solvency II solvency capital requirement for life insurance companies based on expected shortfall" de Tim J. Boonen.
+Projet annuel basé sur l'article "Solvency II solvency capital requirement for life insurance companies based on expected shortfall" de Tim J. Boonen publié en Octobre 2017.
 
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
@@ -41,11 +41,8 @@ library(actuar)
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
 # MSCI data load
-msci <- read.csv(file = 'data/MSCI.csv')[ ,c('Date', 'Adj.Close')]
-msci$Date <- as.Date(msci$Date)
-
-msci2 <- read.csv(file = 'data/MSCI.csv')[ ,c('Date', 'Adj.Close')]
-msci2$Date <- as.Date(msci$Date)
+msci <- read.csv(file = 'data/historyindex.csv', sep = ";")[ ,c('Date', 'Price')]
+msci$Date <- as.Date(msci$Date, "%d-%m-%Y")
 ```
 
 
@@ -70,11 +67,11 @@ Calibration du choc scr sur les actions
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
 # Most basic bubble plot
-p1 <- ggplot(msci, aes(x=Date, y=Adj.Close)) +
+p1 <- ggplot(msci, aes(x=Date, y=Price)) +
   geom_area(fill = "lightgray", color="blue") + 
   xlab("Date") + ylab("Price")  + ggtitle("Evolution de la valeur de l'indice MSCI") + theme_classic()
 
-msci_return <-data.frame( diff(log(msci[,'Adj.Close']))[-1]) # formule de calcul : log[Pt] - log[P(t-1)]
+msci_return <-data.frame( diff(log(msci[,'Price']))[-1]) # formule de calcul : log[Pt] - log[P(t-1)]
 colnames(msci_return) <- c("msci_return")
 
 p2 <- ggplot(msci_return, aes(x=index(msci_return), y=msci_return)) +
