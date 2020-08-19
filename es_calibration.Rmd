@@ -20,8 +20,9 @@ output:
     latex_engine: lualatex
 bibliography: master.bib
 ---
-
-
+  
+  
+    
 Conservatoire National des Arts et Métiers (CNAM Paris) / EFAB  
 Master 2 Actuariat  
 STA217 Gestion quantitative du risque en finance et assurance  
@@ -41,8 +42,10 @@ library(actuar)
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
 # MSCI data load
-msci <- read.csv(file = 'data/historyindex.csv', sep = ";")[ ,c('Date', 'Price')]
+msci <- read.csv(file = 'data/historyindex.csv', sep = ";", header = TRUE)[ ,c('Date', 'Price')]
 msci$Date <- as.Date(msci$Date, "%d-%m-%Y")
+# Utilisation des séries temporelle à la place : 
+msci_ts <- ts(msci$Price, start = c(1969,12,31), frequency = 12)
 ```
 
 
@@ -71,15 +74,17 @@ p1 <- ggplot(msci, aes(x=Date, y=Price)) +
   geom_area(fill = "lightgray", color="blue") + 
   xlab("Date") + ylab("Price")  + ggtitle("Evolution de la valeur de l'indice MSCI") + theme_classic()
 
-msci_return <-data.frame( diff(log(msci[,'Price']))[-1]) # formule de calcul : log[Pt] - log[P(t-1)]
+# formule de calcul : log[Pt] - log[P(t-1)]
+msci_return <-data.frame(diff(msci_ts)/stats::lag(msci_ts, -1))
 colnames(msci_return) <- c("msci_return")
+# anualisation
+msci_return$msci_return <- ((1+msci_return$msci_return)^12)-1
 
 p2 <- ggplot(msci_return, aes(x=index(msci_return), y=msci_return)) +
   geom_line( color="red") + 
   xlab("index") + ylab("return") + ggtitle("Rendement de l'indice MSCI") + theme_classic()
 
 plot_grid(p1, p2, ncol = 1, align = "v")
-
 ```
 
 Distribution des rendements
@@ -98,7 +103,6 @@ p4 <- ggplot(msci_return, aes(msci_return)) +
   theme_classic()
 
 plot_grid(p3, p4)
-
 ```
 
 Value at risque historique sur les données de rendements annualisées 
@@ -106,7 +110,7 @@ Value at risque historique sur les données de rendements annualisées
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
 # Calcul de la VAR historique des données
 histo_VAR <- round(quantile(msci_return, probs = c(0, 0.0005, 0.005, 0.01, 0.025, 0.5, 0.975, 0.99, 0.995, 0.9995, 1), na.rm = TRUE, names = TRUE, type = 1), 4)
-histo_VAR
+knitr::kable(histo_VAR)
 ```
 
 Value at risque d'une loi normale théorique
@@ -123,7 +127,6 @@ theo_VAR
 histo_ES <- round(mean(msci_return$msci_return[msci_return$msci_return<=histo_VAR[3]]), 4)
 histo_ES
 ```
-
 
 ### CALIBRATION DU CHOC SUR LES TAUX
 
