@@ -37,15 +37,21 @@ library(ggplot2)
 library(dplyr)
 library(cowplot)
 library(actuar)
+library(lifecontingencies)
 ```
 
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
-# MSCI data load
+# MSCI data load: source : https://www.msci.com/developed-markets aout 2020
 msci <- read.csv(file = 'data/historyindex.csv', sep = ";", header = TRUE)[ ,c('Date', 'Price')]
 msci$Date <- as.Date(msci$Date, "%d-%m-%Y")
+
 # Utilisation des séries temporelle à la place : 
 msci_ts <- ts(msci$Price, start = c(1969,12,31), frequency = 12)
+
+# Source : The Human Mortality database : https://www.mortality.org/#:~:text=The%20Human%20Mortality%20Database%20(HMD,the%20history%20of%20human%20longevity.
+# https://www.lifetable.de/cgi-bin/country.php?code=fra
+fra_mortality <- read.csv(file = 'data/FRA.csv', sep = ",", header = TRUE)[,c("Year1","Sex","Age","l.x.")]
 ```
 
 
