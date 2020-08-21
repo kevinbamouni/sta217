@@ -38,9 +38,10 @@ library(dplyr)
 library(cowplot)
 library(actuar)
 library(lifecontingencies)
+library(reshape2)
 
 # fichier de functions
-source("es_calibration_functions.R")
+# source("es_calibration_functions.R")
 
 ```
 
@@ -55,7 +56,9 @@ msci_ts <- ts(msci$Price, start = c(1969,12,31), frequency = 12)
 
 # Source : The Human Mortality database : https://www.mortality.org/#:~:text=The%20Human%20Mortality%20Database%20(HMD,the%20history%20of%20human%20longevity.
 # https://www.lifetable.de/cgi-bin/country.php?code=fra
-fra_mortality <- read.csv(file = 'data/FRA.csv', sep = ",", header = TRUE)[,c("Ref.ID","Year1","TypeLT","Sex","Age","q.x.","l.x.")]
+fra_mortality <- read.csv(file = 'data/fra_qx_ret.csv', sep = ";", header = FALSE, dec = ".")
+colnames(fra_mortality) <- fra_mortality[1,]
+fra_mortality <- fra_mortality[2:dim(fra_mortality)[1],]
 ```
 
 
