@@ -27,7 +27,7 @@ Conservatoire National des Arts et Métiers (CNAM Paris) / EFAB
 Master 2 Actuariat  
 STA217 Gestion quantitative du risque en finance et assurance  
   
-Projet annuel basé sur l'article "Solvency II solvency capital requirement for life insurance companies based on expected shortfall" de Tim J. Boonen publié en Octobre 2017.
+Projet de fin d'année basé sur l'article "Solvency II solvency capital requirement for life insurance companies based on expected shortfall" de Tim J. Boonen publié en Octobre 2017.
 
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
@@ -108,7 +108,7 @@ Distribution des rendements
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
 p3 <- ggplot(msci_return, aes(msci_return)) +
   geom_histogram( bins = 50, color="darkgreen", fill="white") +
-  xlab("return") + ylab("frequence") + ggtitle("Rendement de l'indice MSCI") +
+  xlab("return") + ylab("Nombre d'occurrence") + ggtitle("Rendement de l'indice MSCI") +
   theme_classic()
 
 p4 <- ggplot(msci_return, aes(msci_return)) +
@@ -157,8 +157,40 @@ fra_mortality1 <- melt(fra_mortality, id.vars="Age")
 # variable est du type factor, on sait ce qui s'en suit!!!
 fra_mortality1 <- fra_mortality1 %>% filter(variable %in% c(1995:2015))
 
-ggplot(fra_mortality1, aes(Age, value, group=variable, color=variable)) + geom_line()
+p5 <- ggplot(fra_mortality1, aes(Age, value, group=variable, color=variable)) + geom_line() +
+  geom_vline(xintercept = "90", colour = "black", linetype = "dashed") + geom_vline(xintercept = "65", colour = "black", linetype = "dashed") + theme_classic() +
+   theme_classic() + ylab("Probabilité de survie") + ggtitle("Evolution de la Table de survie entre 1995 et 2015")
+
+p5
+
+# TODO : Fix le 5 qui est en plein milieu sans raison valable là
+  
 ```
+
+```{r, echo = FALSE, fig.align = 'center', message=FALSE}
+# Taux de changement de la longévité
+fra_mortality_evol <- (fra_mortality[,3:dim(fra_mortality)[2]] - fra_mortality[,2:(dim(fra_mortality)[2]-1)])/fra_mortality[,2:(dim(fra_mortality)[2]-1)]
+fra_mortality_evol$Age <- fra_mortality$Age
+
+fra_mortality_evol1 <- melt(fra_mortality_evol, id.vars="Age", value.factor = FALSE)
+fra_mortality_evol1$value <- as.numeric(fra_mortality_evol1$value)
+fra_mortality_evol1 <- na.omit(fra_mortality_evol1)
+
+p6 <- ggplot(fra_mortality_evol1, aes(value)) +
+  geom_histogram( bins = 50, color="darkblue", fill="white") +
+  xlab("taux d'évolution") + ylab("Nombre d'occurrence") + ggtitle("Histogramme des taux d'évolution de la longévité") +
+  theme_classic()
+
+p7 <- ggplot(fra_mortality_evol1, aes(value)) +
+  geom_density(color="goldenrod2", fill = "gold1", alpha = 0.1) +
+  #stat_function(fun = dnorm, args = list(mean(fra_mortality_evol1$value), sd(fra_mortality_evol1$value)), color = "red") +
+  #geom_vline(xintercept = mean(fra_mortality_evol1$value), colour = "#FF3721", linetype = "dashed") +
+  xlab("taux d'évolution") + ylab("frequence") + ggtitle("Rendement de l'indice MSCI") +
+  theme_classic()
+
+plot_grid(p6, p7)
+```
+
 
 # 3. THEORIE DES VALEURS EXTREMES POUR LA CALIBRATION DES CHOCS
 
