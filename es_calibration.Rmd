@@ -45,7 +45,7 @@ library(readr)
 library(RcppRoll)
 
 # fichier de functions
-# source("es_calibration_functions.R")
+source("es_calibration_functions.R")
 
 ```
 
@@ -181,23 +181,16 @@ fra_mortality_evol1 <- melt(fra_mortality_evol, id.vars="Age", value.factor = FA
 fra_mortality_evol1$value <- as.numeric(fra_mortality_evol1$value)
 fra_mortality_evol1 <- na.omit(fra_mortality_evol1)
 
-p6 <- ggplot(fra_mortality_evol1, aes(value)) +
-  geom_histogram( bins = 50, color="darkblue", fill="white") +
-  xlab("taux d'évolution") + ylab("Nombre d'occurrence") + ggtitle("Histogramme des taux d'évolution de la longévité") +
-  theme_classic()
+p6 <- plotagedensite(fra_mortality_evol1,"70")
+p7 <- plotagedensite(fra_mortality_evol1,"75")
+p8 <- plotagedensite(fra_mortality_evol1,"80")
+p9 <- plotagedensite(fra_mortality_evol1,"85")
 
-p7 <- ggplot(fra_mortality_evol1, aes(value)) +
-  geom_density(color="goldenrod2", fill = "gold1", alpha = 0.1) +
-  #stat_function(fun = dnorm, args = list(mean(fra_mortality_evol1$value), sd(fra_mortality_evol1$value)), color = "red") +
-  #geom_vline(xintercept = mean(fra_mortality_evol1$value), colour = "#FF3721", linetype = "dashed") +
-  xlab("taux d'évolution") + ylab("frequence") + ggtitle("Rendement de l'indice MSCI") +
-  theme_classic()
-
-plot_grid(p6, p7)
+plot_grid(p6,p7,p8,p9)
 ```
 
 
-# 3. THEORIE DES VALEURS EXTREMES POUR LA CALIBRATION DES CHOCS
+# THEORIE DES VALEURS EXTREMES POUR LA CALIBRATION DES CHOCS
 
 
 # CONCLUSION
