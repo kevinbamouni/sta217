@@ -46,7 +46,7 @@ library(RcppRoll)
 
 # fichier de functions
 source("es_calibration_functions.R")
-
+source("data_management.R")
 ```
 
 
@@ -64,6 +64,7 @@ msci_ts <- ts(msci$Price, start = c(1969,12,31), frequency = 12)
 fra_mortality <- read.csv(file = 'data/fra_qx_ret.csv', sep = ";", header = FALSE, dec = ".")
 colnames(fra_mortality) <- fra_mortality[1,]
 fra_mortality <- fra_mortality[2:dim(fra_mortality)[1],]
+
 ```
 
 
@@ -156,37 +157,35 @@ histo_ES
 ### CALIBRATION DU CHOC SUR LA LONGEVITE
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
-# transposition du dataframe des données de longévité
-fra_mortality1 <- melt(fra_mortality, id.vars="Age")
-
-# variable est du type factor, on sait ce qui s'en suit!!!
-fra_mortality1 <- fra_mortality1 %>% filter(variable %in% c(1995:2015))
-
-p5 <- ggplot(fra_mortality1, aes(Age, value, group=variable, color=variable)) + geom_line() +
-  geom_vline(xintercept = "90", colour = "black", linetype = "dashed") + geom_vline(xintercept = "65", colour = "black", linetype = "dashed") + theme_classic() +
-   theme_classic() + ylab("Probabilité de survie") + ggtitle("Evolution de la Table de survie entre 1995 et 2015")
+p5 <- ggplot(FR, aes(Age, qx, group=Year, color=Year)) + geom_line(aes(color = factor(Year))) +
+  geom_vline(xintercept = "105-109", colour = "black", linetype = "dashed") +
+   geom_vline(xintercept = "55-59", colour = "black", linetype = "dashed")+
+    ylab("Probabilité de décès") + ggtitle("Evolution de la Table de mortalité en France entre 1992 et 2009") +      scale_x_discrete(limits=c("0","1-4","5-9","10-14","15-19","20-24","25-29","30-34","35-39","40-44","45-49","50-54","55-59","60-64","65-69","70-74","75-79","80-84","85-89","90-94","95-99","100-104","105-109","110+"),guide = guide_axis(n.dodge = 2)) +
+  theme_classic()
 
 p5
 
-# TODO : Fix le 5 qui est en plein milieu sans raison valable là
+# TODO : Fix le 5 qui est en plein milieu sans raison valable là    
 ```
 
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
 # Taux de changement de la longévité
-fra_mortality_evol <- (fra_mortality[,3:dim(fra_mortality)[2]] - fra_mortality[,2:(dim(fra_mortality)[2]-1)])/fra_mortality[,2:(dim(fra_mortality)[2]-1)]
-fra_mortality_evol$Age <- fra_mortality$Age
+FR_reshape_melt <- melt(FR_reshape, id.vars="Age", value.factor = FALSE)
+FR_reshape_melt$value <- as.numeric(FR_reshape_melt$value)
+FR_reshape_melt <- na.omit(FR_reshape_melt)
 
-fra_mortality_evol1 <- melt(fra_mortality_evol, id.vars="Age", value.factor = FALSE)
-fra_mortality_evol1$value <- as.numeric(fra_mortality_evol1$value)
-fra_mortality_evol1 <- na.omit(fra_mortality_evol1)
-
-p6 <- plotagedensite(fra_mortality_evol1,"70")
-p7 <- plotagedensite(fra_mortality_evol1,"75")
-p8 <- plotagedensite(fra_mortality_evol1,"80")
-p9 <- plotagedensite(fra_mortality_evol1,"85")
+p6 <- plotagedensite(FR_reshape_melt,"65-69")
+p7 <- plotagedensite(FR_reshape_melt,"75-79")
+p8 <- plotagedensite(FR_reshape_melt,"85-89")
+p9 <- plotagedensite(FR_reshape_melt,"105-109")
 
 plot_grid(p6,p7,p8,p9)
+```
+Calcul des ES par tranche d'age.
+
+```{r, echo = FALSE, fig.align = 'center', message=FALSE}
+#left_join(DEN_reshape, FR_reshape, by='Age') %>% left_join(EST_reshape, by = 'Age') %>% left_join(HUN_reshape, by = 'Age') %>% left_join(IT_reshape, by = 'Age') %>% left_join(POL_reshape, by = 'Age') %>% left_join(SWE_reshape, by = 'Age') %>% left_join(ENGW_reshape, by = 'Age') %>% left_join(CZE_reshape, by = 'Age')
 ```
 
 
