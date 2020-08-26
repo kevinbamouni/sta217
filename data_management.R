@@ -1,6 +1,7 @@
 # Mortality data wrangling !!!
 # Lecture des données de table de mortalité des 9 pays récupérées dans la base 
-# The Human Mortality Database : https://www.mortality.org/ (Un id et un mot de passe ont été créés pour avoir l'accès aux données)
+# The Human Mortality Database : https://www.mortality.org/ (Un id et un mot de passe ont été créés pour avoir l'accès aux données) 
+# Date d'extraction des données : 25/08/2020
 
 DEN <- read.table("data/DEN.txt", header = TRUE)[,c("Year","Age","qx")]
 FR <- read.table("data/FR.txt", header = TRUE)[,c("Year","Age","qx")]

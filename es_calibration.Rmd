@@ -37,13 +37,12 @@ library(quantmod)
 library(ggplot2)
 library(dplyr)
 library(cowplot)
-library(actuar)
 library(lifecontingencies)
 library(reshape2)
-library(dplyr)
 library(readr)
 library(RcppRoll)
-
+library(cvar)
+library(tibble)
 # fichier de functions
 source("es_calibration_functions.R")
 source("data_management.R")
@@ -51,19 +50,13 @@ source("data_management.R")
 
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
-# MSCI data load: source : https://www.msci.com/developed-markets aout 2020
+# MSCI data load: source : https://www.msci.com/developed-markets 
+# Data d'extraction des données: 20 aout 2020
 msci <- read.csv(file = 'data/historyindex.csv', sep = ";", header = TRUE)[ ,c('Date', 'Price')]
 msci$Date <- as.Date(msci$Date, "%d-%m-%Y")
 
 # Utilisation des séries temporelle à la place : 
 msci_ts <- ts(msci$Price, start = c(1969,12,31), frequency = 12)
-
-# Source : The Human Mortality database : https://www.mortality.org/#:~:text=The%20Human%20Mortality%20Database%20(HMD,the%20history%20of%20human%20longevity.
-# https://www.lifetable.de/cgi-bin/country.php?code=fra
-
-fra_mortality <- read.csv(file = 'data/fra_qx_ret.csv', sep = ";", header = FALSE, dec = ".")
-colnames(fra_mortality) <- fra_mortality[1,]
-fra_mortality <- fra_mortality[2:dim(fra_mortality)[1],]
 
 ```
 
@@ -98,8 +91,8 @@ msci_return <-data.frame(diff(msci_ts)/stats::lag(msci_ts, -1))
 colnames(msci_return) <- c("msci_return")
 
 # anualisation
-msci_return$msci_return <- 1+msci_return$msci_return
-msci_return_annualized <-data.frame(roll_prod(msci_return$msci_return, n =12) - 1)
+#msci_return$msci_return <- 1+msci_return$msci_return
+msci_return_annualized <-data.frame(roll_prod(1+msci_return$msci_return, n =12) - 1)
 colnames(msci_return_annualized) <- c("msci_return_annualized")
 
 p2 <- ggplot(msci_return_annualized, aes(x=index(msci_return_annualized), y=msci_return_annualized)) +
@@ -131,24 +124,22 @@ Value at risque historique sur les données de rendements annualisées
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
 # Calcul de la VAR historique des données
-histo_VAR <- round(quantile(msci_return, probs = c(0, 0.0005, 0.005, 0.01, 0.025, 0.5, 0.975, 0.99, 0.995, 0.9995, 1), na.rm = TRUE, names = TRUE, type = 1), 4)
-knitr::kable(histo_VAR)
+histo_VAR <- round(quantile(msci_return_annualized, probs = c(0.005), na.rm = TRUE, type = 1), 4)
 ```
 
 Value at risque d'une loi normale théorique
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
-# Calcul de la VAR théorique de la loi normale en supposant que les rendements suivent une loi normale
-theo_VAR <- round(qnorm(c(0, 0.0005, 0.005, 0.01, 0.025, 0.5, 0.975, 0.99, 0.995, 0.9995, 1),mean=mean(msci_return$msci_return),sd=sd(msci_return$msci_return)), 4)
-theo_VAR
-```
-
-
-```{r, echo = FALSE, fig.align = 'center', message=FALSE}
 # msci_return$msci_return[msci_return$msci_return<histo_VAR[3]]
-histo_ES <- round(mean(msci_return$msci_return[msci_return$msci_return<=histo_VAR[3]]), 4)
-histo_ES
+histo_ES <- round(mean(msci_return_annualized$msci_return_annualized[msci_return_annualized$msci_return_annualized<=round(quantile(msci_return_annualized, probs = c(0.0115), na.rm = TRUE, type = 1), 4)]), 4)
 ```
+
+: Choc calibré pour le SCR marché.
+
+$\alpha(\%)$ |$\theta(\alpha)(\%)$ | $VaR_{\alpha}(\%)$    |$ES_{\theta(\alpha)}(\%)$|
+-------------|-------------        | -------------         |---------------------    |
+99.5         | 98.85               | `r histo_VAR*100-7.5` | `r histo_ES*100-7.5`    |
+
 
 
 ### CALIBRATION DU CHOC SUR LES TAUX
@@ -182,21 +173,39 @@ p9 <- plotagedensite(FR_reshape_melt,"105-109")
 
 plot_grid(p6,p7,p8,p9)
 ```
-Calcul des ES par tranche d'age.
+Calcul des ES En moyenne pour toutes les tranches d'age et tous les pays.
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
-#left_join(DEN_reshape, FR_reshape, by='Age') %>% left_join(EST_reshape, by = 'Age') %>% left_join(HUN_reshape, by = 'Age') %>% left_join(IT_reshape, by = 'Age') %>% left_join(POL_reshape, by = 'Age') %>% left_join(SWE_reshape, by = 'Age') %>% left_join(ENGW_reshape, by = 'Age') %>% left_join(CZE_reshape, by = 'Age')
+join_qx_df <- left_join(DEN_reshape, FR_reshape, by='Age') %>% left_join(EST_reshape, by = 'Age') %>% left_join(HUN_reshape, by = 'Age') %>% left_join(IT_reshape, by = 'Age') %>% left_join(POL_reshape, by = 'Age') %>% left_join(SWE_reshape, by = 'Age') %>% left_join(ENGW_reshape, by = 'Age') %>% left_join(CZE_reshape, by = 'Age')
+
+join_qx_df <- column_to_rownames(join_qx_df, var = "Age")
+
+es_theo <- function(vect, qq){
+  return(ES(qnorm, x = qq, mean = mean(vect), sd = sd(vect)))
+}
+
+var_theo <- function(vect, qq){
+  return(VaR(qnorm, x = qq, mean = mean(vect), sd = sd(vect)))
+}
+
+# Theta choisi tel la var = es
+es_longe <- round(mean(-apply(join_qx_df[1:22,], 1, es_theo, qq=0.0129))*100,2)
+
+var_longe <- round(mean(-apply(join_qx_df[1:22,], 1, var_theo, qq=0.005))*100,2)
 ```
 
 
-# THEORIE DES VALEURS EXTREMES POUR LA CALIBRATION DES CHOCS
+: Choc calibré pour le SCR Longévité.
 
+$\alpha(\%)$   | $\theta(\alpha)(\%)$ | $VaR_{\alpha}(\%)$    |$ES_{\theta(\alpha)}(\%)$|
+---------------|-------------         | -------------         |---------------------    |
+99.5           | 98.71                | `r var_longe`         | `r es_longe`            |
+
+# THEORIE DES VALEURS EXTREMES POUR LA CALIBRATION DES CHOCS
 
 # CONCLUSION
 
-
-# REFERENCES 
-
+# REFERENCES
 
 # ANNEXES  avec codes, figures en plus etc.).
 
