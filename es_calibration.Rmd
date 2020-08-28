@@ -80,7 +80,7 @@ Academic workflow, certainly in political science, is at a crossroads. The *Amer
 
 Calibration du choc scr sur les actions
 
-```{r, echo = FALSE, fig.align = 'center', message=FALSE}
+```{r, echo = FALSE, fig.align = 'center', message=FALSE, fig.cap= "Rendement de l'indice MSCI"}
 # Most basic bubble plot
 p1 <- ggplot(msci, aes(x=Date, y=Price)) +
   geom_area(fill = "lightgray", color="blue") + 
@@ -97,14 +97,14 @@ colnames(msci_return_annualized) <- c("msci_return_annualized")
 
 p2 <- ggplot(msci_return_annualized, aes(x=index(msci_return_annualized), y=msci_return_annualized)) +
   geom_line( color="red") + 
-  xlab("index") + ylab("return") + ggtitle("Rendement de l'indice MSCI") + theme_classic()
+  xlab("index") + ylab("return") + theme_classic()
 
 plot_grid(p1, p2, ncol = 1, align = "v")
 ```
 
 Distribution des rendements
 
-```{r, echo = FALSE, fig.align = 'center', message=FALSE}
+```{r, echo = FALSE, fig.align = 'center', message=FALSE, fig.cap= "Rendement de l'indice MSCI"}
 p3 <- ggplot(msci_return_annualized, aes(msci_return_annualized)) +
   geom_histogram( bins = 50, color="darkgreen", fill="white") +
   xlab("return") + ylab("Nombre d'occurrence") + ggtitle("Rendement de l'indice MSCI") +
@@ -114,7 +114,7 @@ p4 <- ggplot(msci_return_annualized, aes(msci_return_annualized)) +
   geom_density(color="goldenrod2", fill = "gold1", alpha = 0.1) +
   stat_function(fun = dnorm, args = list(mean(msci_return_annualized$msci_return_annualized), sd(msci_return_annualized$msci_return_annualized)), color = "red") +
   geom_vline(xintercept = mean(msci_return_annualized$msci_return_annualized), colour = "#FF3721", linetype = "dashed") +
-  xlab("return") + ylab("frequence en %") + ggtitle("Rendement de l'indice MSCI") +
+  xlab("return") + ylab("frequence en %") + 
   theme_classic()
 
 plot_grid(p3, p4)
@@ -134,7 +134,7 @@ Value at risque d'une loi normale théorique
 histo_ES <- round(mean(msci_return_annualized$msci_return_annualized[msci_return_annualized$msci_return_annualized<=round(quantile(msci_return_annualized, probs = c(0.0115), na.rm = TRUE, type = 1), 4)]), 4)
 ```
 
-: Choc calibré pour le SCR marché.
+: Calibration des chocs "global equity" avec la VaR et l'ES incluant un ajustement symétrique de 7,5%.
 
 $\alpha(\%)$ |$\theta(\alpha)(\%)$ | $VaR_{\alpha}(\%)$    |$ES_{\theta(\alpha)}(\%)$|
 -------------|-------------        | -------------         |---------------------    |
@@ -147,11 +147,11 @@ $\alpha(\%)$ |$\theta(\alpha)(\%)$ | $VaR_{\alpha}(\%)$    |$ES_{\theta(\alpha)}
 
 ### CALIBRATION DU CHOC SUR LA LONGEVITE
 
-```{r, echo = FALSE, fig.align = 'center', message=FALSE}
+```{r, echo = FALSE, fig.align = 'center', message=FALSE, fig.cap= "Evolution de la Table de mortalité en France entre 1992 et 2009"}
 p5 <- ggplot(FR, aes(Age, qx, group=Year, color=Year)) + geom_line(aes(color = factor(Year))) +
   geom_vline(xintercept = "105-109", colour = "black", linetype = "dashed") +
    geom_vline(xintercept = "55-59", colour = "black", linetype = "dashed")+
-    ylab("Probabilité de décès") + ggtitle("Evolution de la Table de mortalité en France entre 1992 et 2009") +      scale_x_discrete(limits=c("0","1-4","5-9","10-14","15-19","20-24","25-29","30-34","35-39","40-44","45-49","50-54","55-59","60-64","65-69","70-74","75-79","80-84","85-89","90-94","95-99","100-104","105-109","110+"),guide = guide_axis(n.dodge = 2)) +
+    ylab("Probabilité de décès") +  scale_x_discrete(limits=c("0","1-4","5-9","10-14","15-19","20-24","25-29","30-34","35-39","40-44","45-49","50-54","55-59","60-64","65-69","70-74","75-79","80-84","85-89","90-94","95-99","100-104","105-109","110+"),guide = guide_axis(n.dodge = 2)) +
   theme_classic()
 
 p5
@@ -160,19 +160,6 @@ p5
 ```
 
 
-```{r, echo = FALSE, fig.align = 'center', message=FALSE}
-# Taux de changement de la longévité
-FR_reshape_melt <- melt(FR_reshape, id.vars="Age", value.factor = FALSE)
-FR_reshape_melt$value <- as.numeric(FR_reshape_melt$value)
-FR_reshape_melt <- na.omit(FR_reshape_melt)
-
-p6 <- plotagedensite(FR_reshape_melt,"65-69")
-p7 <- plotagedensite(FR_reshape_melt,"75-79")
-p8 <- plotagedensite(FR_reshape_melt,"85-89")
-p9 <- plotagedensite(FR_reshape_melt,"105-109")
-
-plot_grid(p6,p7,p8,p9)
-```
 Calcul des ES En moyenne pour toutes les tranches d'age et tous les pays.
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
@@ -195,7 +182,28 @@ var_longe <- round(mean(-apply(join_qx_df[1:22,], 1, var_theo, qq=0.005))*100,2)
 ```
 
 
-: Choc calibré pour le SCR Longévité.
+
+```{r, echo = FALSE, fig.align = 'center', message=FALSE, fig.cap= "Another amazing plot"}
+dt1 <- melt(join_qx_df["55-59",])
+
+
+p6 <- ggplot(dt1, aes(value)) +
+    geom_density(color="aquamarine2", fill = "aquamarine2", alpha = 0.1) +
+    stat_function(fun = dnorm, args = list(mean(dt1$value), sd(dt1$value)), color = "brown") +
+    geom_vline(xintercept = mean(dt1$value), colour = "#FF3721", linetype = "dashed") +
+    xlab("taux d'évolution") + ylab("frequence en %") + 
+    theme_classic()
+  
+
+p7 <- ggplot(dt1, aes(sample=value)) + stat_qq(color="darkgrey") + stat_qq_line(color = "brown")+ 
+    theme_classic()
+
+plot_grid(p6, p7, ncol = 1, align = "v")
+
+```
+
+
+: Calibration des chocs "longévité" avec la VaR et l'ES.
 
 $\alpha(\%)$   | $\theta(\alpha)(\%)$ | $VaR_{\alpha}(\%)$    |$ES_{\theta(\alpha)}(\%)$|
 ---------------|-------------         | -------------         |---------------------    |
@@ -209,6 +217,6 @@ $\alpha(\%)$   | $\theta(\alpha)(\%)$ | $VaR_{\alpha}(\%)$    |$ES_{\theta(\alph
 
 # ANNEXES  avec codes, figures en plus etc.).
 
-## packages R
+## Packages R
 
-## articles
+## Articles
