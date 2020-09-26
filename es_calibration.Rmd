@@ -124,12 +124,24 @@ Le SCR du risque $\rho$ se défini comme :
 $$ SCR_{risque\ \rho} = max \left\{ \Delta FP_{choc\ du\ risque\ \rho}, 0 \right\} $$
 Après avoir déterminé le SCR de chacun des facteurs de risque et sous risque, l'assureur les agrège à l'aide d'une matrice de corrélation des risques pour obtenir le SCR global.
 
-Dans la suite de ce document nous calibrons les chocs de taux, action et longévité. En effet, les modules de risques de marché et de vie représentent environ 91,1% du SCR de base d'une compagnie d'assurance vie.
+Dans la suite de ce document nous calibrons les chocs de taux, action et longévité. En effet, les modules de risques de marché et de vie représentent environ 91,1% du SCR de base d'une compagnie d'assurance vie. 
 
 
 # Modèles de calibration des chocs pour le calcul du SCR
 
 ## Calibration du choc du risque action
+
+Afin de calibrer le choc de SCR action nous utilisons les données mensuels de l'historique du niveau l'indice "Morgan Stanley Capital International (MSCI) World Developed (Market) Price Equity Index" entre 12/1969 et 07/2020. Pour se faire, nous transformons ces données en historique de rendements mensuels :
+
+$$ R_m = \frac{I_{m}-I_{m-1}}{I_{m}}$$
+Avec $I_m$ le niveau de l'index au mois $m$, et $R_m$ le rendement de l'indice au mois $m$.
+
+L'historique des rendements mensuels est transformé en historique de rendements annualisés par un roll over de la formule d'annualisation de taux :
+
+$$-1+\prod_{m=1}^{12}(1+R_m)$$
+
+
+Nous calculons ensuite l'expected shortfall à un niveau de risque correspondant à une value at risk de 99,5% sur l'historique de données de rendements annualisés. Nous ajoutons 7,5% à la value at risk pour inclure l'ajustment symétrique ordonné par l'EIOPA dans le "Calibratiion Paper".
 
 Calibration du choc scr sur les actions
 
@@ -160,7 +172,7 @@ Distribution des rendements
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE, fig.cap= "Rendement de l'indice MSCI"}
 p3 <- ggplot(msci_return_annualized, aes(msci_return_annualized)) +
   geom_histogram( bins = 50, color="darkgreen", fill="white") +
-  xlab("return") + ylab("Nombre d'occurrence") + ggtitle("Rendement de l'indice MSCI") +
+  xlab("return") + ylab("Nombre d'occurrence") +
   theme_classic()
 
 p4 <- ggplot(msci_return_annualized, aes(msci_return_annualized)) +
@@ -178,14 +190,9 @@ Value at risque historique sur les données de rendements annualisées
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
 # Calcul de la VAR historique des données
 histo_VAR <- round(quantile(msci_return_annualized, probs = c(0.005), na.rm = TRUE, type = 1), 4)
-```
-
-Value at risque d'une loi normale théorique
-
-```{r, echo = FALSE, fig.align = 'center', message=FALSE}
-# msci_return$msci_return[msci_return$msci_return<histo_VAR[3]]
 histo_ES <- round(mean(msci_return_annualized$msci_return_annualized[msci_return_annualized$msci_return_annualized<=round(quantile(msci_return_annualized, probs = c(0.0115), na.rm = TRUE, type = 1), 4)]), 4)
 ```
+
 
 : Calibration des chocs "global equity" avec la VaR et l'ES incluant un ajustement symétrique de 7,5%.
 
@@ -219,10 +226,7 @@ p5 <- ggplot(FR, aes(Age, qx, group=Year, color=Year)) + geom_line(aes(color = f
   theme_classic()
 
 p5
-
-# TODO : Fix le 5 qui est en plein milieu sans raison valable là    
 ```
-
 
 Calcul des ES En moyenne pour toutes les tranches d'age et tous les pays.
 
@@ -247,7 +251,7 @@ var_longe <- round(mean(-apply(join_qx_df[1:22,], 1, var_theo, qq=0.005))*100,2)
 
 
 
-```{r, echo = FALSE, fig.align = 'center', message=FALSE, fig.cap= "Another amazing plot"}
+```{r, echo = FALSE, fig.align = 'center', message=FALSE, fig.cap= "Distribution de l'évolution des taux de longévité"}
 dt1 <- melt(join_qx_df["55-59",])
 
 
@@ -296,7 +300,24 @@ Base de données de l'indice MSCI World : https://www.msci.com/developed-markets
 
 # Annexes avec codes, figures en plus etc.).
 
-.
+## Code R
+
+```r
+# Libraries
+library(quantmod)
+library(ggplot2)
+library(dplyr)
+library(cowplot)
+library(reshape2)
+library(readr)
+library(RcppRoll)
+library(cvar)
+library(tibble)
+library(lubridate)
+# fichier de functions
+source("es_calibration_functions.R")
+source("data_management.R")
+```
 
 ## Packages R
 
@@ -312,5 +333,3 @@ Base de données de l'indice MSCI World : https://www.msci.com/developed-markets
 10. library(lubridate)
 11. library(FactoMineR)
 12. library(factoextra)
-
-## Articles
