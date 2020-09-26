@@ -2,10 +2,16 @@ library(FactoMineR)
 library(RcppRoll)
 library(factoextra)
 library(ggplot2)
-
+library(reshape2)
 #########################################################################################################
 # Lecture des données de variation de la courbe de taux
-data <- read.csv("GLC_Nominal_daily_data_2005_to_2020_return.csv", header=TRUE, sep = ";", dec = ",")
+data <- read.csv("data/GLC_Nominal_daily_data_2005_to_2020_return.csv", header=TRUE, sep = ";", dec = ",")
+
+# Représentation des données :
+data_plot =  melt(data[,1:21])
+ggplot(data_plot, aes(DATE, value, group=variable, color=variable)) + geom_line(show.legend = TRUE)
+
+# Elimination de la colonne date pour ne traiter que les taux de return
 data.active = data.matrix(data[,2:21])
 
 # Annualisation des données journalières puis on centre et réduction des données

@@ -70,12 +70,38 @@ names(bce_spot_rate_curve_histo) <- gsub("YC.B.U2.EUR.4F.G_N_A.SV_C_YM.SR_", "",
 
 # INTRODUCTION
 
-Academic workflow, certainly in political science, is at a crossroads. The *American Journal of Political Science* (*AJPS*) announced a (my words) ["show your work" initiative](http://ajps.org/2015/03/26/the-ajps-replication-policy-innovations-and-revisions/) in which authors who are tentatively accepted for publication at the journal must hand over the raw code and data that produced the results shown in the manuscript. The editorial team at *AJPS* then reproduces the code from the manuscript. Pending successful replication, the manuscript moves toward publication. The *AJPS* might be at the fore of this movement, and it could be the most aggressive among political science journals, but other journals in our field have signed the joint [Data Access & Research Transparency](http://www.dartstatement.org/) (DART) initiative. This, at a bare minimum, requires uploading code from quantitatively-oriented published articles to in-house directories hosted by the journal or to services like [Dataverse](http://dataverse.org/).
+Solvabilité II est une norme prudentielle  entré en vigueur en 2016 pour les assureurs et réassureurs européens. Cette norme établi un ensemble de directives afin de permettre d'identifier, de quantifier et gérer l'ensemble des risques propres à chaque entreprise. L'uniformisation des reportings introduits par la norme permet ainsi une standardisation des bonnes pratiques de gestion de risques, et de restitution d'informations prudentielles à travers l'europe. 
 
-# SOLVABILITE 2
+La norme introduit la notion de "best estimate liabilities" qui est la meilleure estimation possible des engagements de l'entreprise par l'entreprise à horizon d'un an. Pour se faire l'entreprise sur la base d’informations à jour et dignes de foi établie les hypothèses économiques et non économiques nécessaires à l'évaluation des flux financiers engendrés par ses engagements tout en tenant compte es garanties financières et options figurant dans les contrats d’assurance et de réassurance. La norme introduit également les notions de le minimum de capital requis (Minimum Capital Requirement – MCR en anglais) et de apital de solvabilité requis (Solvency Capital Requirement – SCR en anglais). Le SCR représente un coussin pour l'assureur, lui permettant en cas de choc extrêmes économiques et non économiques engendrant directement ou indirectement une augmentation de ses engagements affectant ses fonds propres de rester solvables.
+
+L'évaluation du SCR est basé sur un scénario de stress extrême dit bicentenaire, c'est à dire un évènement ayant une probabilté d'occurence de 1/200. D'un autre point de vu, en cas d'évènement extrème une société d'assurance sur 200 au maximum devrait être insolvable. Afin d'établir ce scénario de stress bicentenaire selon la norme solvabilité II, le niveau de choc à appliquer sur les hypothèses économiques et non économiques centrales est calibré en utilisant un modèle de Value at risk (VaR). Dans son article, Tim J. Boonen (2017) effectue une calibration de choc par un modèle de expected shortfall sur quelques risques d'une société d'assurance fictive afin d'étudier les différences engendrées par l'utilisation de l'une ou l'autre des mesures de risque.
+
+Dans ce document, nous implémentons les modèles de calibration des chocs sur les risque actions, longévité et taux par l'expected shortfall présentés dans l'article de Tim J.Boonen "Solvency II solvency capital requirement for life insurance companies based on expected shortfall" (2017).
+
+Ce document se présentera comme suit, la première partie sera consacrée aux définitions des mesures de risques value at risk et expected shortfall. Dans la seconde partie nous introduirons la directive de solvabilité II pour le calcul du SCR en utilisant les chocs. L'implémentation du modèle d'expected shortfall pour la colibration  des chocs de taux, action et longévité inteviendra dans la troisiéme partie avec de proposer une méthode de calibration de choc basé sur la théorie des valeurs extrêmes..
+ 
 
 
-# MODELE DE L'ARTICLE : ESPECTED SHORTFALL POUR LA CALIBRATION DES CHOCS DE CALCUL DU SCR (CSR)
+# Mesures de risques pour la calibration des chocs solvabilité II.
+
+Calibration d'un choc au sens Solvabilité II se défini essentiellement par le niveau d'évolution négatif au sens de l'assureur à horizon d'un an d'un facteur de risque avec une probabilité de 1/200. Pour se faire, on utilise la value at risk pour déterminer ce niveau d'évolution du facteur de risque dit bicentenaire. 
+
+la value at risk à un niveau $\alpha  \in  (0,1)$ est le $\alpha-$quantile, c'est à dire :
+$$ VaR_\alpha(X) = inf\left\{  x \in  \mathbb{R} : (X>x)\leqslant 1-\alpha \right \} $$ 
+Pour toute variable aléatoire $X$ représentant le niveau d'évolution d'un facteur de risque.
+Au sens de la définition de Artzner et al. (1999) une mesure de risque est dite cohérente si elle est:
+
+1. invariante par la translation 
+2. sous-addtive
+3. homogéne positive
+4. monotone.
+ 
+Par définition la value at risque n'est pas sous-additive, ainsi nous introduisons qui une nouvelle mesure de risque cohérente, l'expected shortfall qui peut se définir comme "l'espérance des pertes au delà de la value at risque". 
+Ainsi soit $ES_\alpha$ l'expected shortfall de niveau $\alpha$:
+
+$$ ES_\alpha(X) = \frac{1}{1-\alpha}\int_{\alpha}^{1} VaR_\tau (X)d\tau $$
+
+# Calcul du Capital de solvabilité requis (SCR) sous solvabilité II.
 
 
 ## DESCRIPTION
