@@ -38,7 +38,6 @@ library(quantmod)
 library(ggplot2)
 library(dplyr)
 library(cowplot)
-library(lifecontingencies)
 library(reshape2)
 library(readr)
 library(RcppRoll)
@@ -71,7 +70,7 @@ names(bce_spot_rate_curve_histo) <- gsub("YC.B.U2.EUR.4F.G_N_A.SV_C_YM.SR_", "",
 
 # INTRODUCTION
 
-Solvabilité II est une norme prudentielle  entré en vigueur en 2016 pour les assureurs et réassureurs européens. Cette norme établi un ensemble de directives afin de permettre d'identifier, de quantifier et gérer l'ensemble des risques propres à chaque entreprise. L'uniformisation des reportings introduits par la norme permet ainsi une standardisation des bonnes pratiques de gestion de risques, et de restitution d'informations prudentielles à travers l'europe. 
+Solvabilité II est une norme prudentielle  entré en vigueur en 2016 pour les assureurs et réassureurs européens déclinée par l'EIOPA (European Insurance and Occupational Pensions Authority). Cette norme établi un ensemble de directives afin de permettre d'identifier, de quantifier et gérer l'ensemble des risques propres à chaque entreprise. L'uniformisation des reportings introduits par la norme permet ainsi une standardisation des bonnes pratiques de gestion de risques, et de restitution d'informations prudentielles à travers l'europe. 
 
 La norme introduit la notion de "best estimate liabilities" qui est la meilleure estimation possible des engagements de l'entreprise par l'entreprise à horizon d'un an. Pour se faire l'entreprise sur la base d’informations à jour et dignes de foi établie les hypothèses économiques et non économiques nécessaires à l'évaluation des flux financiers engendrés par ses engagements tout en tenant compte es garanties financières et options figurant dans les contrats d’assurance et de réassurance. La norme introduit également les notions de le minimum de capital requis (Minimum Capital Requirement – MCR en anglais) et de apital de solvabilité requis (Solvency Capital Requirement – SCR en anglais). Le SCR représente un coussin pour l'assureur, lui permettant en cas de choc extrêmes économiques et non économiques engendrant directement ou indirectement une augmentation de ses engagements affectant ses fonds propres de rester solvables.
 
@@ -83,7 +82,7 @@ Ce document se présentera comme suit, la première partie sera consacrée aux d
  
 
 
-# Mesures de risques pour la calibration des chocs solvabilité II.
+# Mesures de risques
 
 Calibration d'un choc au sens Solvabilité II se défini essentiellement par le niveau d'évolution négatif au sens de l'assureur à horizon d'un an d'un facteur de risque avec une probabilité de 1/200. Pour se faire, on utilise la value at risk pour déterminer ce niveau d'évolution du facteur de risque dit bicentenaire. 
 
@@ -97,20 +96,40 @@ Au sens de la définition de Artzner et al. (1999) une mesure de risque est dite
 3. homogéne positive
 4. monotone.
  
-Par définition la value at risque n'est pas sous-additive, ainsi nous introduisons qui une nouvelle mesure de risque cohérente, l'expected shortfall qui peut se définir comme "l'espérance des pertes au delà de la value at risque". 
-Ainsi soit $ES_\alpha$ l'expected shortfall de niveau $\alpha$:
+Par définition la value at risque n'est pas sous-additive. La sous-addivité est une propriété particulièrement importante car elle implique la de la mesure du risque lorsque les risques sont mutualisés. Ainsi nous introduisons une nouvelle mesure de risque cohérente, l'expected shortfall.
+Soit $ES_\alpha$ l'expected shortfall de niveau $\alpha$:
 
 $$ ES_\alpha(X) = \frac{1}{1-\alpha}\int_{\alpha}^{1} VaR_\tau (X)d\tau $$
-
-# Calcul du Capital de solvabilité requis (SCR) sous solvabilité II.
-
-
-## DESCRIPTION
+Ou plus intuitivement, elle peut se définir comme "l'espérance des pertes au delà de la value at risque", c'est la définition que nous utiliserons dans la suite de ce document : 
+$$ ES_\alpha (X) = E(X \mid  X\geqslant VaR_\alpha(X)) $$
+Contrairement à la value at risk, en plus d'être une mesure de risque cohérente, l'expected shortfall est une mesure qui tient compte des queues de distribution des facteurs de risques mesurés. Cependant, les deux mesures de risque présentent leurs avantages et leurs inconvénients et sont encore discutées dans la littérature scientifique. L'object de ce document n'est pas de trancher en faveur de l'une ou l'autre des mesures de risque comme étant la meilleure, mais de présenter l'utilisation d'une mesure de risque pour la calibration de choc au sens de solvabilité II.
 
 
-## MODELE DE CALIBRATION DES CHOCS DE CAPITAL DE SOLVABILITE REQUIS
+# Calcul du Capital de solvabilité requis (SCR) selon le pilier I de solvabilité II
 
-### CALIBRATION DU CHOC SUR LES ACTIONS
+Selon l'EIOPA dans la norme Solvabilité II, le capital de solvabilité requis (SCR) correspond à une value at risque d'un niveau 99,5% à l'horizon d'un an des fonds propres de l'assureur . Le principe de la formule standard est d'appliquer un certain de niveau de choc à chaque facteur de risque pouvant engendrer une perte financière, et d'évaluer l'impact sur ses fonds propres. Ces chocs sont calibrés avec une value at risk à un niveau 99,5% à l'horizon d'un an. L'assureur effectue l'exercice pour chaque module de risque, générant ainsi un SCR pour chaque risque, avant d'agréger l'ensemble des SCR à l'aide d'une matrice de corrélation prédéfinie (par la norme ou propre au profil de risque de l'entreprise) pour produire le SCR total.
+
+Pour calculer le SCR total, l'assureur evalue tout d'abord avec des hypothèses économiques et non économiques dit centrales ses engagements, c'est le Best Estimate liabilities (BEL). Après avoir estimé son BEL et son actif (A) en valeur de marché, il détermine le niveau de ses fonds propres (FP) afin de produire son bilan prudentiel selon la formule simplifiée :
+
+$$ A - BEL_{central} = FP_{central} $$ 
+
+Lorsque l'assureur applique un choc négatif à un facteur de risque pour produire une nouvelle hypothèse économique ou non économique qui sera dite stressée avant de réévaluer le BEL et les fonds propres nous obtenons la nouvelle formule suivante :
+
+$$ A - BEL_{choc\ du\ risque\ \lambda} = FP_{choc\ du\ risque\ \rho} $$
+L'assureur suite au choc négatif sur une hypothèse évalue un BEL choqué qui sera supérieur au BEL central engendrant ainsi une variation à la baisse de ses fonds propres (central). Cette variation représente le SCR du risque relatif à l'hypothèse choquée. Ainsi :
+
+$$ \Delta FP_{choc\ du\ risque\ \rho} = FP_{central} - FP_{choc\ du\ risque\ \rho} $$
+Le SCR du risque $\rho$ se défini comme :
+
+$$ SCR_{risque\ \rho} = max \left\{ \Delta FP_{choc\ du\ risque\ \rho}, 0 \right\} $$
+Après avoir déterminé le SCR de chacun des facteurs de risque et sous risque, l'assureur les agrège à l'aide d'une matrice de corrélation des risques pour obtenir le SCR global.
+
+Dans la suite de ce document nous calibrons les chocs de taux, action et longévité. En effet, les modules de risques de marché et de vie représentent environ 91,1% du SCR de base d'une compagnie d'assurance vie.
+
+
+# Modèles de calibration des chocs pour le calcul du SCR
+
+## Calibration du choc du risque action
 
 Calibration du choc scr sur les actions
 
@@ -176,7 +195,7 @@ $\alpha(\%)$ |$\theta(\alpha)(\%)$ | $VaR_{\alpha}(\%)$    |$ES_{\theta(\alpha)}
 
 
 
-### CALIBRATION DU CHOC SUR LES TAUX
+## Calibration du choc du risque de taux
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
 #bce_spot_rate_curve_histo_tible <- as_tibble(bce_spot_rate_curve_histo)
@@ -190,16 +209,7 @@ melt_bce_spot_rate_curve_histo <- melt(bce_spot_rate_curve_histo[1:5,])
 p8 <- ggplot(melt_bce_spot_rate_curve_histo, aes(variable, value, group=DATE, color=DATE)) + geom_line(show.legend = TRUE)
 p8
 ```
-
-
-
-```{r, echo = FALSE, fig.align = 'center', message=FALSE}
-
-```
-
-
-
-### CALIBRATION DU CHOC SUR LA LONGEVITE
+## Calibration du choc du risque de longévité.
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE, fig.cap= "Evolution de la Table de mortalité en France entre 1992 et 2009"}
 p5 <- ggplot(FR, aes(Age, qx, group=Year, color=Year)) + geom_line(aes(color = factor(Year))) +
@@ -257,20 +267,50 @@ plot_grid(p6, p7, ncol = 1, align = "v")
 ```
 
 
+
 : Calibration des chocs "longévité" avec la VaR et l'ES.
 
 $\alpha(\%)$   | $\theta(\alpha)(\%)$ | $VaR_{\alpha}(\%)$    |$ES_{\theta(\alpha)}(\%)$|
 ---------------|-------------         | -------------         |---------------------    |
 99.5           | 98.71                | `r var_longe`         | `r es_longe`            |
 
-# THEORIE DES VALEURS EXTREMES POUR LA CALIBRATION DES CHOCS
+# Théorie des valeurs extrêmes pour la calibration des chocs
 
-# CONCLUSION
+.dfqsdfqsdfqsdfsdfqsdfqsfdfqsfdfqsffqsdfsdfsdfsdfsf
 
-# REFERENCES
+# Conclusion
 
-# ANNEXES  avec codes, figures en plus etc.).
+.sdhjqkJSHIZuikjhkQHDQSIuhdqsiu
+
+# Références
+
+Boonen, T.J. Solvency II solvency capital requirement for life insurance companies based on expected shortfall. Eur. Actuar. J. 7, 405–434 (2017).
+
+Committee of European Insurance and Occupational Pensions Supervisors (2010) Solvency II calibration paper.
+
+Base de données de de la BCE pour les données de "spot yiel curve" de la zone euro consulté en 08/2020, https://sdw.ecb.europa.eu/home.do 
+
+Base de données de la banque d'angleterre pour les données de "Daily government liability curve (nominal)" consulté en 08/2020, https://www.bankofengland.co.uk/
+
+Base de données de l'indice MSCI World : https://www.msci.com/developed-markets
+
+# Annexes avec codes, figures en plus etc.).
+
+.
 
 ## Packages R
+
+1. library(quantmod)
+2. library(ggplot2)
+3. library(dplyr)
+4. library(cowplot)
+5. library(reshape2)
+6. library(readr)
+7. library(RcppRoll)
+8. library(cvar)
+9. library(tibble)
+10. library(lubridate)
+11. library(FactoMineR)
+12. library(factoextra)
 
 ## Articles
