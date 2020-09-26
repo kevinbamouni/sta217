@@ -43,6 +43,7 @@ library(readr)
 library(RcppRoll)
 library(cvar)
 library(tibble)
+library(lubridate)
 # fichier de functions
 source("es_calibration_functions.R")
 source("data_management.R")
@@ -50,13 +51,19 @@ source("data_management.R")
 
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
-# MSCI data load: source : https://www.msci.com/developed-markets 
-# Data d'extraction des données: 20 aout 2020
+# MSCI data load: source : https://www.msci.com/developed-markets / Data d'extraction des données: 20 aout 2020
 msci <- read.csv(file = 'data/historyindex.csv', sep = ";", header = TRUE)[ ,c('Date', 'Price')]
 msci$Date <- as.Date(msci$Date, "%d-%m-%Y")
 
 # Utilisation des séries temporelle à la place : 
 msci_ts <- ts(msci$Price, start = c(1969,12,31), frequency = 12)
+
+# Importdes données de taux : courbe historique de la bce / taux spot sans risque obligation noté AAA / extration 27/08/2020
+bce_spot_rate_curve_histo <- read.csv(file = 'data/courbe_des_taux_historique_bce.csv', sep = ";", header = TRUE)
+names(bce_spot_rate_curve_histo) <- gsub("YC.B.U2.EUR.4F.G_N_A.SV_C_YM.SR_", "", names(bce_spot_rate_curve_histo))
+
+# importation des données de taux : courbe historique de la banque d'angleterre / taux spot sans risque 
+#glc_spot_rate_curve_histo <- read.csv(file = 'data/courbe_des_taux_historique_bce.csv', sep = ";", header = TRUE)
 
 ```
 
@@ -143,6 +150,26 @@ $\alpha(\%)$ |$\theta(\alpha)(\%)$ | $VaR_{\alpha}(\%)$    |$ES_{\theta(\alpha)}
 
 
 ### CALIBRATION DU CHOC SUR LES TAUX
+
+```{r, echo = FALSE, fig.align = 'center', message=FALSE}
+#bce_spot_rate_curve_histo_tible <- as_tibble(bce_spot_rate_curve_histo)
+#bce_spot_rate_curve_histo_tible <- bce_spot_rate_curve_histo_tible %>% mutate(DATE = as_date(DATE, format="%d/%m/%y"))
+#filter(bce_spot_rate_curve_histo_tible, DATE == as_date("2/08/2020", format="%d/%m/%y"))
+melt_bce_spot_rate_curve_histo <- melt(bce_spot_rate_curve_histo[1:5,])
+
+#melt_bce_spot_rate_curve_histo$DATE <- as.Date(melt_bce_spot_rate_curve_histo$DATE,format="%d/%m/%y")
+#melt_bce_spot_rate_curve_histo <- filter(bce_spot_rate_curve_histo, DATE >= as.Date('01/01/2020', format="%d/%m/%y"))
+
+p8 <- ggplot(melt_bce_spot_rate_curve_histo, aes(variable, value, group=DATE, color=DATE)) + geom_line(show.legend = TRUE)
+p8
+```
+
+
+
+```{r, echo = FALSE, fig.align = 'center', message=FALSE}
+
+```
+
 
 
 ### CALIBRATION DU CHOC SUR LA LONGEVITE

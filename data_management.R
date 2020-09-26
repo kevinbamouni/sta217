@@ -3,6 +3,7 @@
 # The Human Mortality Database : https://www.mortality.org/ (Un id et un mot de passe ont été créés pour avoir l'accès aux données) 
 # Date d'extraction des données : 25/08/2020
 
+# Lecture des fichiers de données et constrution des dataframes
 DEN <- read.table("data/DEN.txt", header = TRUE)[,c("Year","Age","qx")]
 FR <- read.table("data/FR.txt", header = TRUE)[,c("Year","Age","qx")]
 EST <- read.table("data/EST.txt", header = TRUE)[,c("Year","Age","qx")]
@@ -13,6 +14,8 @@ SWE <- read.table("data/SWE.txt", header = TRUE)[,c("Year","Age","qx")]
 ENGW <- read.table("data/ENGW.txt", header = TRUE)[,c("Year","Age","qx")]
 CZE <- read.table("data/CZE.txt", header = TRUE)[,c("Year","Age","qx")]
 
+# Application d'un filtre sur les données pour ne considérer que les données de 19992 à 2009
+# Ces filtres peuvent aussi se faire avec le package dplyr
 DEN <- DEN[is.element(DEN$Year,c(1992:2009)),]
 FR <- FR[is.element(FR$Year,c(1992:2009)),]
 EST <- EST[is.element(EST$Year,c(1992:2009)),]
@@ -23,6 +26,7 @@ SWE <- SWE[is.element(SWE$Year,c(1992:2009)),]
 ENGW <- ENGW[is.element(ENGW$Year,c(1992:2009)),]
 CZE <- CZE[is.element(CZE$Year,c(1992:2009)),]
 
+# Transposition des dataframes 
 DEN_reshape <- reshape(DEN, direction = "wide", idvar = "Age", timevar = "Year")
 FR_reshape <- reshape(FR, direction = "wide", idvar = "Age", timevar = "Year")
 EST_reshape <- reshape(EST, direction = "wide", idvar = "Age", timevar = "Year")
@@ -33,6 +37,7 @@ SWE_reshape <- reshape(SWE, direction = "wide", idvar = "Age", timevar = "Year")
 ENGW_reshape <- reshape(ENGW, direction = "wide", idvar = "Age", timevar = "Year")
 CZE_reshape <- reshape(CZE, direction = "wide", idvar = "Age", timevar = "Year")
 
+# Retraitement des noms de colonnes pour supprimer les suffixes "qx."
 names(DEN_reshape) <- gsub("qx.", "", names(DEN_reshape))
 names(FR_reshape) <- gsub("qx.", "", names(FR_reshape))
 names(EST_reshape) <- gsub("qx.", "", names(EST_reshape))
@@ -43,6 +48,7 @@ names(SWE_reshape) <- gsub("qx.", "", names(SWE_reshape))
 names(ENGW_reshape) <- gsub("qx.", "", names(ENGW_reshape))
 names(CZE_reshape) <- gsub("qx.", "", names(CZE_reshape))
 
+# Calcul des taux d'évolution des table de longévités avec la fonction qx_return présente dans es_calibration_fucntions.R
 DEN_reshape <- qx_return(DEN_reshape)
 FR_reshape <- qx_return(FR_reshape)
 EST_reshape <- qx_return(EST_reshape)
