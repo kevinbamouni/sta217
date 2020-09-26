@@ -30,6 +30,7 @@ STA217 Gestion quantitative du risque en finance et assurance
   
 Projet de fin d'année basé sur l'article "Solvency II solvency capital requirement for life insurance companies based on expected shortfall" de Tim J. Boonen publié en Octobre 2017.
 
+\newpage
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
 # Libraries
