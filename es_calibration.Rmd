@@ -140,16 +140,11 @@ L'historique des rendements mensuels est transformé en historique de rendements
 
 $$-1+\prod_{m=1}^{12}(1+R_m)$$
 
-
-Nous calculons ensuite l'expected shortfall à un niveau de risque correspondant à une value at risk de 99,5% sur l'historique de données de rendements annualisés. Nous ajoutons 7,5% à la value at risk pour inclure l'ajustment symétrique ordonné par l'EIOPA dans le "Calibratiion Paper".
-
-Calibration du choc scr sur les actions
-
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE, fig.cap= "Rendement de l'indice MSCI"}
 # Most basic bubble plot
 p1 <- ggplot(msci, aes(x=Date, y=Price)) +
   geom_area(fill = "lightgray", color="blue") + 
-  xlab("Date") + ylab("Price")  + ggtitle("Evolution de la valeur de l'indice MSCI") + theme_classic()
+  xlab("Date") + ylab("Niveau")  + ggtitle("Evolution de la valeur de l'indice MSCI") + theme_classic()
 
 # formule de calcul : (Pt - P(t-1))/P(t-1)
 msci_return <-data.frame(diff(msci_ts)/stats::lag(msci_ts, -1))
@@ -162,12 +157,11 @@ colnames(msci_return_annualized) <- c("msci_return_annualized")
 
 p2 <- ggplot(msci_return_annualized, aes(x=index(msci_return_annualized), y=msci_return_annualized)) +
   geom_line( color="red") + 
-  xlab("index") + ylab("return") + theme_classic()
+  xlab("index") + ylab("rendement annuel") + theme_classic()
 
 plot_grid(p1, p2, ncol = 1, align = "v")
 ```
-
-Distribution des rendements
+Nous calculons ensuite l'expected shortfall à un niveau de risque correspondant à une value at risk de 99,5% sur la distribution de l'historique de données de rendements annualisés. Nous ajoutons 7,5% à la value at risk pour inclure l'ajustment symétrique ordonné par l'EIOPA dans le "Calibratiion Paper".
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE, fig.cap= "Rendement de l'indice MSCI"}
 p3 <- ggplot(msci_return_annualized, aes(msci_return_annualized)) +
@@ -185,12 +179,13 @@ p4 <- ggplot(msci_return_annualized, aes(msci_return_annualized)) +
 plot_grid(p3, p4)
 ```
 
-Value at risque historique sur les données de rendements annualisées 
+Nous obtenons ainsi la value at risk à 99,5% et l'expected shortfall à 98,5%.
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
 # Calcul de la VAR historique des données
 histo_VAR <- round(quantile(msci_return_annualized, probs = c(0.005), na.rm = TRUE, type = 1), 4)
-histo_ES <- round(mean(msci_return_annualized$msci_return_annualized[msci_return_annualized$msci_return_annualized<=round(quantile(msci_return_annualized, probs = c(0.0115), na.rm = TRUE, type = 1), 4)]), 4)
+histo_VAR = histo_VAR - (7.5/100)
+histo_ES <- round(mean(msci_return_annualized$msci_return_annualized[msci_return_annualized$msci_return_annualized <= round(quantile(msci_return_annualized, probs = c(0.0115), na.rm = TRUE, type = 1), 4)]- (7.5/100)), 4)
 ```
 
 
@@ -218,7 +213,11 @@ p8
 ```
 ## Calibration du choc du risque de longévité.
 
-```{r, echo = FALSE, fig.align = 'center', message=FALSE, fig.cap= "Evolution de la Table de mortalité en France entre 1992 et 2009"}
+Pour un assureur vie, un choc à la hausse de la longévité des assurés engendre un choc à la hausse de ses engagements financiers des produits souscris tels que les produits de rente et de retraite. La longévité est quantifiée dans les tables de survies par la probabilité de survivre d'un individu d'âge $x$ de survivre jusqu'à l'âge $x+1$. 
+
+Pour calibrer les chocs de taux nous utilisons les données de tables de survies unisex de 9 pays entre 1992 et 2009. Les probabilités de survie sont quantifiées sur des intervalles de 5 ans. Les neufs pays sont le Danemark, la France, l'Angleterre, le Pays de Galles, l'Estonie, l'Italie, la Suède, la Pologne, la Hongrie et la République tchèque.
+
+```{r, echo = FALSE, fig.align = 'center', message=FALSE, fig.cap= "Evolution de la Table de survie en France entre 1992 et 2009"}
 p5 <- ggplot(FR, aes(Age, qx, group=Year, color=Year)) + geom_line(aes(color = factor(Year))) +
   geom_vline(xintercept = "105-109", colour = "black", linetype = "dashed") +
    geom_vline(xintercept = "55-59", colour = "black", linetype = "dashed")+
@@ -228,7 +227,11 @@ p5 <- ggplot(FR, aes(Age, qx, group=Year, color=Year)) + geom_line(aes(color = f
 p5
 ```
 
-Calcul des ES En moyenne pour toutes les tranches d'age et tous les pays.
+Nous calculons pour chaque pays le taux de changement annuelle de la probabilité de survie sur un intervalle de 5 ans :
+
+$$ PC_{x,x+5} = \frac{P_{x,x+5}^{a}-P_{x,x+5}^{a-1}}{P_{x,x+5}^{a}}$$
+Avec $P_{x,x+5}^{a}$, la probabilité d'un individu d'âge $x$ de survivre à l'âge $x+5$ en année $a$.
+Nous faisons l'hypothèse de que le taux de changement annuel de la probabilité de survie suit une loi normale.
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
 join_qx_df <- left_join(DEN_reshape, FR_reshape, by='Age') %>% left_join(EST_reshape, by = 'Age') %>% left_join(HUN_reshape, by = 'Age') %>% left_join(IT_reshape, by = 'Age') %>% left_join(POL_reshape, by = 'Age') %>% left_join(SWE_reshape, by = 'Age') %>% left_join(ENGW_reshape, by = 'Age') %>% left_join(CZE_reshape, by = 'Age')
