@@ -2,7 +2,7 @@
 documentclass: article
 title: "Solvabilté II : Calibration des chocs de capital de solvabilité requis avec expected shortfall."
 author: "Kevin BAMOUNI"
-date: "01/09/2020"
+date: "29/09/2020"
 geometry: margin=1in
 fontfamily: mathptmx
 fontsize: 11pt
@@ -19,10 +19,16 @@ output:
     citation_package: natbib
     latex_engine: xelatex
     number_sections: true
+    extra_dependencies: ["float"]
 bibliography: master.bib
 ---
-  
-  
+
+
+```{r, echo = FALSE, fig.align = 'center', message=FALSE}
+knitr::opts_chunk$set(fig.pos = 'H', out.extra = '')
+```
+
+
     
 Conservatoire National des Arts et Métiers (CNAM Paris) / EFAB  
 Master 2 Actuariat  
@@ -104,6 +110,13 @@ Ou plus intuitivement, elle peut se définir comme "l'espérance des pertes au d
 $$ ES_\alpha (X) = E(X \mid  X\geqslant VaR_\alpha(X)) $$
 Contrairement à la value at risk, en plus d'être une mesure de risque cohérente, l'expected shortfall est une mesure qui tient compte des queues de distribution des facteurs de risques mesurés. Cependant, les deux mesures de risque présentent leurs avantages et leurs inconvénients et sont encore discutées dans la littérature scientifique. L'object de ce document n'est pas de trancher en faveur de l'une ou l'autre des mesures de risque comme étant la meilleure, mais de présenter l'utilisation d'une mesure de risque pour la calibration de choc au sens de solvabilité II.
 
+Afin d'apporter une cohérence dans la comparaison entre la calibration des chocs par value at risk et expected shortfall,
+
+l'auteur défini la fonction strictement croissante $\theta$ telle que $SCR(VaR_{\alpha})=SCR(ES_{\theta(\alpha)}$. Soit :
+
+$$\theta : [0.95,1] \rightarrow [0,1]$$
+$$ SCR(VaR_\alpha)=SCR(ES_\theta) $$
+Cette fonction n'est pas partie intégrante du modèle de calibration de choc, elle permet d'appliquer une mesure de risque différente tout en gardant la directive du niveau de choc d'une value at risk à 99,5% donnée par l'EIOPA dans la norme solvabilité II.
 
 # Calcul du Capital de solvabilité requis (SCR) selon le pilier I de solvabilité II
 
@@ -112,7 +125,6 @@ Selon l'EIOPA dans la norme Solvabilité II, le capital de solvabilité requis (
 Pour calculer le SCR total, l'assureur evalue tout d'abord avec des hypothèses économiques et non économiques dit centrales ses engagements, c'est le Best Estimate liabilities (BEL). Après avoir estimé son BEL et son actif (A) en valeur de marché, il détermine le niveau de ses fonds propres (FP) afin de produire son bilan prudentiel selon la formule simplifiée :
 
 $$ A - BEL_{central} = FP_{central} $$ 
-
 Lorsque l'assureur applique un choc négatif à un facteur de risque pour produire une nouvelle hypothèse économique ou non économique qui sera dite stressée avant de réévaluer le BEL et les fonds propres nous obtenons la nouvelle formule suivante :
 
 $$ A - BEL_{choc\ du\ risque\ \lambda} = FP_{choc\ du\ risque\ \rho} $$
@@ -126,7 +138,6 @@ Après avoir déterminé le SCR de chacun des facteurs de risque et sous risque,
 
 Dans la suite de ce document nous calibrons les chocs de taux, action et longévité. En effet, les modules de risques de marché et de vie représentent environ 91,1% du SCR de base d'une compagnie d'assurance vie. 
 
-
 # Modèles de calibration des chocs pour le calcul du SCR
 
 ## Calibration du choc du risque action
@@ -134,7 +145,7 @@ Dans la suite de ce document nous calibrons les chocs de taux, action et longév
 Afin de calibrer le choc de SCR action nous utilisons les données mensuels de l'historique du niveau l'indice "Morgan Stanley Capital International (MSCI) World Developed (Market) Price Equity Index" entre 12/1969 et 07/2020. Pour se faire, nous transformons ces données en historique de rendements mensuels :
 
 $$ R_m = \frac{I_{m}-I_{m-1}}{I_{m}}$$
-Avec $I_m$ le niveau de l'index au mois $m$, et $R_m$ le rendement de l'indice au mois $m$.
+avec $I_m$ le niveau de l'index au mois $m$, et $R_m$ le rendement de l'indice au mois $m$.
 
 L'historique des rendements mensuels est transformé en historique de rendements annualisés par un roll over de la formule d'annualisation de taux :
 
@@ -163,7 +174,7 @@ plot_grid(p1, p2, ncol = 1, align = "v")
 ```
 Nous calculons ensuite l'expected shortfall à un niveau de risque correspondant à une value at risk de 99,5% sur la distribution de l'historique de données de rendements annualisés. Nous ajoutons 7,5% à la value at risk pour inclure l'ajustment symétrique ordonné par l'EIOPA dans le "Calibratiion Paper".
 
-```{r, echo = FALSE, fig.align = 'center', message=FALSE, fig.cap= "Rendement de l'indice MSCI"}
+```{r, echo = FALSE, fig.align = 'center', message=FALSE, fig.cap= " Distribution empirique des rendement de l'indice MSCI"}
 p3 <- ggplot(msci_return_annualized, aes(msci_return_annualized)) +
   geom_histogram( bins = 50, color="darkgreen", fill="white") +
   xlab("return") + ylab("Nombre d'occurrence") +
@@ -195,8 +206,6 @@ $\alpha(\%)$ |$\theta(\alpha)(\%)$ | $VaR_{\alpha}(\%)$    |$ES_{\theta(\alpha)}
 -------------|-------------        | -------------         |---------------------    |
 99.5         | 98.85               | `r histo_VAR*100-7.5` | `r histo_ES*100-7.5`    |
 
-
-
 ## Calibration du choc du risque de taux
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
@@ -209,8 +218,8 @@ melt_bce_spot_rate_curve_histo <- melt(bce_spot_rate_curve_histo[1:5,])
 #melt_bce_spot_rate_curve_histo <- filter(bce_spot_rate_curve_histo, DATE >= as.Date('01/01/2020', format="%d/%m/%y"))
 
 p8 <- ggplot(melt_bce_spot_rate_curve_histo, aes(variable, value, group=DATE, color=DATE)) + geom_line(show.legend = TRUE)
-p8
 ```
+
 ## Calibration du choc du risque de longévité.
 
 Pour un assureur vie, un choc à la hausse de la longévité des assurés engendre un choc à la hausse de ses engagements financiers des produits souscris tels que les produits de rente et de retraite. La longévité est quantifiée dans les tables de survies par la probabilité de survivre d'un individu d'âge $x$ de survivre jusqu'à l'âge $x+1$. 
@@ -231,7 +240,10 @@ Nous calculons pour chaque pays le taux de changement annuelle de la probabilit�
 
 $$ PC_{x,x+5} = \frac{P_{x,x+5}^{a}-P_{x,x+5}^{a-1}}{P_{x,x+5}^{a}}$$
 Avec $P_{x,x+5}^{a}$, la probabilité d'un individu d'âge $x$ de survivre à l'âge $x+5$ en année $a$.
-Nous faisons l'hypothèse de que le taux de changement annuel de la probabilité de survie suit une loi normale.
+
+Nous faisons l'hypothèse de que le taux de changement annuel de la probabilité de survie suit une loi normale. Ensuite, nous calculons pour chaque intervalle d'age de survie, et pour chaque pays, la value at risk à un niveau de 99,5% d'une loi normale calibrée au données de changement de probabilité de survie correspondant. On obtient donc 9 value at risk pour chaque intervalle d'age de survie (9 pays). La moyenne des value at risk par intervalle d'age de survie donne un choc de longévité par tranche d'âge. Notre choc de longévité unique correspondra à la moyenne des chocs de toutes les tranches d'âge.
+
+L'expected shortfall à un niveau équivalent à cette value at risk constitue notre choc de longévité pour le calcul du capital de solvabilité requis pour le risque de longévité au sens de solvabilité II.
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
 join_qx_df <- left_join(DEN_reshape, FR_reshape, by='Age') %>% left_join(EST_reshape, by = 'Age') %>% left_join(HUN_reshape, by = 'Age') %>% left_join(IT_reshape, by = 'Age') %>% left_join(POL_reshape, by = 'Age') %>% left_join(SWE_reshape, by = 'Age') %>% left_join(ENGW_reshape, by = 'Age') %>% left_join(CZE_reshape, by = 'Age')
@@ -252,6 +264,12 @@ es_longe <- round(mean(-apply(join_qx_df[1:22,], 1, es_theo, qq=0.0129))*100,2)
 var_longe <- round(mean(-apply(join_qx_df[1:22,], 1, var_theo, qq=0.005))*100,2)
 ```
 
+
+: Calibration des chocs "longévité" avec la VaR de niveau $\alpha$ et l'ES au niveau $\theta(\alpha)$.
+
+$\alpha(\%)$   | $\theta(\alpha)(\%)$ | $VaR_{\alpha}(\%)$    |$ES_{\theta(\alpha)}(\%)$|
+---------------|-------------         | -------------         |---------------------    |
+99.5           | 98.71                | `r var_longe`         | `r es_longe`            |
 
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE, fig.cap= "Distribution de l'évolution des taux de longévité"}
@@ -274,13 +292,6 @@ plot_grid(p6, p7, ncol = 1, align = "v")
 ```
 
 
-
-: Calibration des chocs "longévité" avec la VaR et l'ES.
-
-$\alpha(\%)$   | $\theta(\alpha)(\%)$ | $VaR_{\alpha}(\%)$    |$ES_{\theta(\alpha)}(\%)$|
----------------|-------------         | -------------         |---------------------    |
-99.5           | 98.71                | `r var_longe`         | `r es_longe`            |
-
 # Théorie des valeurs extrêmes pour la calibration des chocs
 
 .dfqsdfqsdfqsdfsdfqsdfqsfdfqsfdfqsffqsdfsdfsdfsdfsf
@@ -289,17 +300,23 @@ $\alpha(\%)$   | $\theta(\alpha)(\%)$ | $VaR_{\alpha}(\%)$    |$ES_{\theta(\alph
 
 .sdhjqkJSHIZuikjhkQHDQSIuhdqsiu
 
+\newpage
+
 # Références
 
-Boonen, T.J. Solvency II solvency capital requirement for life insurance companies based on expected shortfall. Eur. Actuar. J. 7, 405–434 (2017).
+1.Boonen, T.J. Solvency II solvency capital requirement for life insurance companies based on expected shortfall. Eur. Actuar. J. 7, 405–434 (2017).
 
-Committee of European Insurance and Occupational Pensions Supervisors (2010) Solvency II calibration paper.
+2.Committee of European Insurance and Occupational Pensions Supervisors (2010) Solvency II calibration paper.
 
-Base de données de de la BCE pour les données de "spot yiel curve" de la zone euro consulté en 08/2020, https://sdw.ecb.europa.eu/home.do 
+3.Base de données de de la BCE pour les données de "spot yiel curve" de la zone euro consulté en 08/2020, https://sdw.ecb.europa.eu/home.do 
 
-Base de données de la banque d'angleterre pour les données de "Daily government liability curve (nominal)" consulté en 08/2020, https://www.bankofengland.co.uk/
+4.Base de données de la banque d'angleterre pour les données de "Daily government liability curve (nominal)" consulté en 08/2020, https://www.bankofengland.co.uk/
 
-Base de données de l'indice MSCI World : https://www.msci.com/developed-markets
+5.Base de données de l'indice MSCI World : https://www.msci.com/developed-markets
+
+6.Données de longévité unisexe des 9 pays utilisées pour la calibration du choc de longévité consultées en 08/2020 : The Human Mortality Database : https://www.mortality.org/ (créer un id et un mot de passe pour accéder aux donées)
+
+\newpage
 
 # Annexes avec codes, figures en plus etc.).
 
@@ -321,6 +338,7 @@ library(lubridate)
 source("es_calibration_functions.R")
 source("data_management.R")
 ```
+\newpage
 
 ## Packages R
 
