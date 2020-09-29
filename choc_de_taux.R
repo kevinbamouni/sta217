@@ -50,14 +50,9 @@ theme_bw() + guides(color=guide_legend("Axes principaux"))
 pc_shoc_up = vect_propre * (sqrt(val_propre)) * qnorm(.995, mean = 0, sd = 1)
 pc_shoc_down = vect_propre * (sqrt(val_propre)) * qnorm(1-0.995, mean = 0, sd = 1)
 
+pc_shoc_down = vect_propre * qnorm(1-0.995, mean = 0, sd = 1)
+
 pc = as.matrix(data.active) %*% as.matrix(vect_propre)
 
 orig = pc %*% t(pc_shoc_up)
 
-quantile(pc[,1], probs = seq(0.995))
-quantile(pc[,2], probs = seq(0.995))
-quantile(pc[,3], probs = seq(0.995))
-
-pc_shoc_up$level*quantile(pc[,1], probs = seq(0.995)) + pc_shoc_up$slope*mean(pc[,2]) + pc_shoc_up$curvature*mean(pc[,3])
-
-pc_shoc_up$level*mean(pc[,1]) + pc_shoc_up$slope*quantile(pc[,2], probs = seq(0.995)) + pc_shoc_up$curvature*quantile(pc[,3], probs = seq(0.995))

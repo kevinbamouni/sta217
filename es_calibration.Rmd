@@ -50,6 +50,7 @@ library(RcppRoll)
 library(cvar)
 library(tibble)
 library(lubridate)
+library(evd)
 # fichier de functions
 source("es_calibration_functions.R")
 source("data_management.R")
@@ -82,9 +83,9 @@ La norme introduit la notion de "best estimate liabilities" qui représente la m
 
 L'évaluation du SCR est basé sur un scénario de stress extrême dit bicentenaire, c'est à dire un évènement ayant une probabilté d'occurence de 1/200. D'un autre point de vu, en cas d'évènements extrêmes, une société d'assurance sur 200 au maximum devrait devenir insolvable. Afin d'établir ce scénario de stress bicentenaire selon la norme solvabilité II, le niveau de choc à appliquer pour chaque hypothèse économique et non économique centrale est calibré en utilisant un modèle de Value at risk (VaR). Dans son article, Tim J. Boonen (2017) effectue une calibration de choc par un modèle basé sur l'expected shortfall. Les chocs sont calibrés sur les facteurs de risques affectant une société d'assurance vie fictive.
 
-Dans ce document, nous implémentons les modèles de calibration des chocs sur les risque action, longévité et taux par l'expected shortfall présentés dans l'article de Tim J.Boonen "Solvency II solvency capital requirement for life insurance companies based on expected shortfall" (2017).
+Dans ce document, nous implémentons les modèles de calibration des chocs sur les risque action, longévité par l'expected shortfall présentés dans l'article de Tim J.Boonen "Solvency II solvency capital requirement for life insurance companies based on expected shortfall" (2017).
 
-Ce document se présentera comme suit, la première partie sera consacrée aux définitions des mesures de risques value at risk et expected shortfall. Dans la seconde partie nous introduirons la directive de solvabilité II pour le calcul du SCR en utilisant les chocs. L'implémentation du modèle d'expected shortfall pour la colibration  des chocs de taux, action et longévité inteviendra dans la troisiéme partie avec de proposer une méthode de calibration de choc basé sur la théorie des valeurs extrêmes..
+Ce document se présentera comme suit, la première partie sera consacrée aux définitions des mesures de risques value at risk et expected shortfall. Dans la seconde partie nous introduirons la directive de solvabilité II pour le calcul du SCR en utilisant les chocs. L'implémentation du modèle d'expected shortfall pour la colibration  des chocs action et longévité inteviendra dans la troisiéme partie avec de proposer une méthode de calibration de choc basé sur la théorie des valeurs extrêmes..
  
 
 
@@ -134,7 +135,7 @@ Le SCR du risque $\rho$ se défini comme :
 $$ SCR_{risque\ \rho} = max \left\{ \Delta FP_{choc\ du\ risque\ \rho}, 0 \right\} $$
 Après avoir déterminé le SCR de chacun des facteurs de risques et sous-risques, l'assureur les agrège à l'aide de la matrice de corrélation des risques pour obtenir le SCR global.
 
-Dans la suite de ce document nous calibrons les chocs de taux, action et longévité. En effet, les modules de risques de marché et de vie représentent environ 91,1% du SCR de base d'une compagnie d'assurance vie. 
+Dans la suite de ce document nous calibrons les chocs action et longévité. En effet, les modules de risques de marché et de vie représentent environ 91,1% du SCR de base d'une compagnie d'assurance vie. 
 
 # Modèles de calibration des chocs pour le calcul du SCR
 
@@ -188,25 +189,12 @@ $\alpha(\%)$ |$\theta(\alpha)(\%)$ | $VaR_{\alpha}(\%)$    |$ES_{\theta(\alpha)}
 -------------|-------------        | -------------         |---------------------    |
 99.5         | 98.85               | `r histo_VAR*100-7.5` | `r histo_ES*100`        |
 
-## Calibration du choc du risque de taux
-
-```{r, echo = FALSE, fig.align = 'center', message=FALSE}
-#bce_spot_rate_curve_histo_tible <- as_tibble(bce_spot_rate_curve_histo)
-#bce_spot_rate_curve_histo_tible <- bce_spot_rate_curve_histo_tible %>% mutate(DATE = as_date(DATE, format="%d/%m/%y"))
-#filter(bce_spot_rate_curve_histo_tible, DATE == as_date("2/08/2020", format="%d/%m/%y"))
-melt_bce_spot_rate_curve_histo <- melt(bce_spot_rate_curve_histo[1:5,])
-
-#melt_bce_spot_rate_curve_histo$DATE <- as.Date(melt_bce_spot_rate_curve_histo$DATE,format="%d/%m/%y")
-#melt_bce_spot_rate_curve_histo <- filter(bce_spot_rate_curve_histo, DATE >= as.Date('01/01/2020', format="%d/%m/%y"))
-
-p8 <- ggplot(melt_bce_spot_rate_curve_histo, aes(variable, value, group=DATE, color=DATE)) + geom_line(show.legend = TRUE)
-```
 
 ## Calibration du choc du risque de longévité.
 
 Pour un assureur vie, un choc à la hausse de la longévité des assurés engendre un choc à la hausse de ses engagements financiers pour les produits de type "rente viagère", dont les prestation à verser sont conditionnées par la survie de l'assuré. La longévité est quantifiée dans des tables de survies. Ces table renseigne sur la probabilité de survie estimée d'un individu d'âge $x$ de survivre jusqu'à l'âge $x+1$. 
 
-Pour calibrer les chocs de taux nous utilisons l'historique de tables de survies unisex de 9 pays, de 1992 à 2009. Les probabilités de survie sont quantifiées sur des intervalles de 5 ans. Les neufs pays sont le Danemark, la France, l'Angleterre, le Pays de Galles, l'Estonie, l'Italie, la Suède, la Pologne, la Hongrie et la République tchèque. Le graphique ci dessous montre l'évolution de la probabilité de décès par âge en France entre 1992 et 2009.
+Pour calibrer le choc de longévité nous utilisons l'historique de tables de survies unisex de 9 pays, de 1992 à 2009. Les probabilités de survie sont quantifiées sur des intervalles de 5 ans. Les neufs pays sont le Danemark, la France, l'Angleterre, le Pays de Galles, l'Estonie, l'Italie, la Suède, la Pologne, la Hongrie et la République tchèque. Le graphique ci dessous montre l'évolution de la probabilité de décès par âge en France entre 1992 et 2009.
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE, fig.cap= "Evolution de la Table de survie en France entre 1992 et 2009"}
 p5 <- ggplot(FR, aes(Age, qx, group=Year, color=Year)) + geom_line(aes(color = factor(Year))) +
@@ -299,7 +287,6 @@ Le graphique des fréquences ci-dessus présente une queue relativement épaisse
 Nous commençons par explorer le graphique du mean residual life des données afin de choisir le seuil de calibration de la loi de paréto généralisée. 
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE, fig.cap= " Mean residual plot des taux de rendements annuels négatifs de l'indice MSCI World"}
-library(evd)
 dataa = as.matrix(abs(msci_return_annualized[msci_return_annualized<=0]))
 mrlplot(dataa)
 ```
@@ -320,49 +307,45 @@ var_action_extrem = -(threshold - (GPD$param[1]/GPD$param[2])*(1 - ((1/0.005)*(1
 ```
 
 
-```{r, echo = FALSE, fig.align = 'center', message=FALSE}
-#threshold + (GPD$param[1]/GPD$param[2])*(((GPD$npp/GPD$nhigh)*(1-alpha[i]))^(-GPD$param[2])-1)
-var_action_extrem_es = (threshold - (GPD$param[1]/GPD$param[2])*(1 - ((1/(1-0.935))*(13/136))^GPD$param[2]))#+(7.5/100)
-es_action_extrem = var_action_extrem_es/(1-GPD$param[2]) - (GPD$param[1]-GPD$param[2])/(1-GPD$param[2])
-```
+Rappelons le chocs par la value at risk :
 
-Rappelons les chocs value at risk et expected shortfall :
-
-$\alpha(\%)$ |$\theta(\alpha)(\%)$ | $VaR_{\alpha}(\%)$    |$ES_{\theta(\alpha)}(\%)$|
--------------|-------------        | -------------         |---------------------    |
-99.5         | 98.85               | `r histo_VAR*100-7.5` | `r histo_ES*100`        |
+$\alpha(\%)$ | $VaR_{\alpha}(\%)$    |
+-------------| -------------         |
+99.5         | `r histo_VAR*100-7.5` | 
 
 
-Ces chocs inclus une majoration en absolue de la value at risk de +7,5%. Les value at risk et expected shortall obtenus par l'application de la méthode POT donne les résultats suivants :
+ce choc inclu une majoration en absolue de la value at risk de +7,5%. La value at risk obtenu par l'application de la méthode POT donne les résultats suivants :
 
-$\alpha(\%)$ |$\theta(\alpha)(\%)$ | $VaR_{\alpha}(\%)$    |$ES_{\theta(\alpha)}(\%)$|
--------------|-------------        | -------------         |---------------------    |
-99.5         | 98.85               | `r var_action_extrem` | `r es_action_extrem`    |
+$\alpha(\%)$ | $VaR_{\alpha}(\%)$    |
+-------------| -------------         |
+99.5         | `r var_action_extrem*100` |
 
 Rappelons que la value at risk est une estimation avec un certain niveau d'incertitude, cela est la conséquence directe de l'estimation des paramètres de la loi des valeurs extrêmes que sont la $shape$ pour la forme de queue et $scale$ pour l'échelle de la loi.
 Nous pouvons en déduire que la majoration en abolue des +7,5% de la value at risk prescrit par l'EIOPA pour ajustement symétrique permet de tenir également compte des valeurs extrêmes de perte tout en étant plus "prudent" qu'une value at risk obtenue par application de la théorie des valeurs extrêmes. Cela fait encore plus de sens 
 
 # Conclusion
 
-Les modèles de calibration "classiques" de choc par la value at risk et l'expected shortfall sont relativement simples d'implémentation et facile de compréhension, ce qui constitue un véritable atout. La value at risk telle que prescrite par l'EIOPA pour la calibration de chocs sur les facteurs de risque, au vu des modèles de calibrations explorés dans ce document, 
+Les modèles de calibration "classiques" de choc par la value at risk et l'expected shortfall sont relativement simples d'implémentation et facile de compréhension, ce qui constitue un véritable atout. La value at risk telle que prescrite par l'EIOPA pour la calibration de chocs sur les facteurs de risque, au vu des modèles de calibrations explorés dans ce document, peut voir son niveau adapté afin d'utiliser l'expected shortfall ou théorie des valeurs extrêmes afin d'obtenir les mêmes niveau de chocs. En outre, les mesures de risques prenant en compte les queues de distribution peuvent être partivulièrement utiles pour les facteurs de risques présentant des queues épaisses. De plus, dans le contexte de covid-19 actuel qui a un impact direct sur l'économie mondiale, où l'on se rend compte que le choc pandémique a une fréquence supérieure à 1/200, le niveau de risque $\alpha$ constitue également un levier important pour une meilleure gestion des risques des engagements financiers par les sociétés d'assurance et de réassurance.
 
 \newpage
 
 # Références
 
-1.Boonen, T.J. Solvency II solvency capital requirement for life insurance companies based on expected shortfall. Eur. Actuar. J. 7, 405–434 (2017).
+1. Boonen, T.J. Solvency II solvency capital requirement for life insurance companies based on expected shortfall. Eur. Actuar. J. 7, 405–434 (2017).
 
-2.Committee of European Insurance and Occupational Pensions Supervisors (2010) Solvency II calibration paper.
+2. Committee of European Insurance and Occupational Pensions Supervisors (2010) Solvency II calibration paper.
 
-3.Base de données de de la BCE pour les données de "spot yiel curve" de la zone euro consulté en 08/2020, https://sdw.ecb.europa.eu/home.do 
+3. Base de données de de la BCE pour les données de "spot yiel curve" de la zone euro consulté en 08/2020, https://sdw.ecb.europa.eu/home.do 
 
-4.Base de données de la banque d'angleterre pour les données de "Daily government liability curve (nominal)" consulté en 08/2020, https://www.bankofengland.co.uk/
+4. Base de données de la banque d'angleterre pour les données de "Daily government liability curve (nominal)" consulté en 08/2020, https://www.bankofengland.co.uk/
 
-5.Base de données de l'indice Mosrgan Stanley MSCI World Developed Market Price Equity : https://www.msci.com/developed-markets
+5. Base de données de l'indice Mosrgan Stanley MSCI World Developed Market Price Equity : https://www.msci.com/developed-markets
 
-6.Données de longévité unisexe des 9 pays utilisées pour la calibration du choc de longévité consultées en 08/2020 : The Human Mortality Database : https://www.mortality.org/ (créer un id et un mot de passe pour accéder aux donées)
+6. Données de longévité unisexe des 9 pays utilisées pour la calibration du choc de longévité consultées en 08/2020 : The Human Mortality Database : https://www.mortality.org/ (créer un id et un mot de passe pour accéder aux donées)
 
 7. Cours STA217 Gestion quantitative du risque en finance et assurance du CNAM (2019-2020)
+
+8. Livre des directives de solvabilité II, disponible sur le site de l'EIOPA.
 
 \newpage
 
@@ -371,13 +354,118 @@ Les modèles de calibration "classiques" de choc par la value at risk et l'expec
 ## Code R
 
 ```r
+#################################################### Fonctions ###################################################
 
-# Calibration du choc de longévité
+# Plot le graphique des densités d'un dataset
+# dataf : données en input
+# age :age pour lequel il faut le graphique
+plotagedensite <- function(dataf, age){
+  
+  dataf <- dataf %>% filter(Age %in% c(age))
+#  p6 <- ggplot(dataf, aes(value)) +
+#    geom_histogram( bins = 50, color="darkblue", fill="white") +
+#    xlab("taux d'évolution") + ylab("Nombre d'occurrence") + ggtitle("Histogramme des taux d'évolution de la longévité") +
+#    theme_classic()
+  
+  p7 <- ggplot(dataf, aes(value)) +
+    geom_density(color="aquamarine2", fill = "aquamarine2", alpha = 0.1) +
+    stat_function(fun = dnorm, args = list(mean(dataf$value), sd(dataf$value)), color = "brown") +
+    geom_vline(xintercept = mean(dataf$value), colour = "#FF3721", linetype = "dashed") +
+    xlab("taux d'évolution") + ylab("frequence en %") + 
+    theme_classic()
+  
+  return(plot_grid(p7))
+}
 
+# Calcul l'Expected Shortfall
+# df : vecteur des rendements ou tout simplement les données en input
+# qtle : quantile
+# ct : sens de calcul de l'ES ">=" ou "<="
+calcul_es <- function(df, qtle, ct){
+  
+  if (ct==">="){
+    a <-  round(mean(df[df>=qtle]), 4)
+  }
+  if (ct=="<="){
+    a <-  round(mean(df[df<=qtle]), 4)
+  }
+  
+  return(a)
+}
 
+# Calcul de la matrice des improvments de la mortalité au fil des années.
+qx_return <- function(df){
+  a <- df
+  a[,c("1993" ,"1994", "1995", "1996", "1997", "1998", "1999", "2000", "2001", "2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009")] <- 
+    (df[,c("1993" ,"1994", "1995", "1996", "1997", "1998", "1999", "2000", "2001", "2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009")] -
+       df[,c("1992", "1993", "1994", "1995", "1996", "1997", "1998", "1999", "2000", "2001", "2002", "2003", "2004", "2005", "2006", "2007", "2008")]) /
+    df[,c("1992", "1993", "1994", "1995", "1996", "1997", "1998", "1999", "2000", "2001", "2002", "2003", "2004", "2005", "2006", "2007", "2008")]
+  
+  return(a[,c("Age","1993" ,"1994", "1995", "1996", "1997", "1998", "1999", "2000", "2001", "2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009")])
+}
 
-# Calibration du choc action
+################################################### Calibration du choc de longévité  ###################################################
 
+# Mortality data wrangling !!!
+# Lecture des données de table de mortalité des 9 pays récupérées dans la base 
+# The Human Mortality Database : https://www.mortality.org/ (Un id et un mot de passe ont été créés pour avoir l'accès aux données) 
+# Date d'extraction des données : 25/08/2020
+
+# Lecture des fichiers de données et constrution des dataframes
+DEN <- read.table("data/DEN.txt", header = TRUE)[,c("Year","Age","qx")]
+FR <- read.table("data/FR.txt", header = TRUE)[,c("Year","Age","qx")]
+EST <- read.table("data/EST.txt", header = TRUE)[,c("Year","Age","qx")]
+HUN <- read.table("data/HUN.txt", header = TRUE)[,c("Year","Age","qx")]
+IT <- read.table("data/IT.txt", header = TRUE)[,c("Year","Age","qx")]
+POL <- read.table("data/POL.txt", header = TRUE)[,c("Year","Age","qx")]
+SWE <- read.table("data/SWE.txt", header = TRUE)[,c("Year","Age","qx")]
+ENGW <- read.table("data/ENGW.txt", header = TRUE)[,c("Year","Age","qx")]
+CZE <- read.table("data/CZE.txt", header = TRUE)[,c("Year","Age","qx")]
+
+# Application d'un filtre sur les données pour ne considérer que les données de 19992 à 2009
+# Ces filtres peuvent aussi se faire avec le package dplyr
+DEN <- DEN[is.element(DEN$Year,c(1992:2009)),]
+FR <- FR[is.element(FR$Year,c(1992:2009)),]
+EST <- EST[is.element(EST$Year,c(1992:2009)),]
+HUN <- HUN[is.element(HUN$Year,c(1992:2009)),]
+IT <- IT[is.element(IT$Year,c(1992:2009)),]
+POL <- POL[is.element(POL$Year,c(1992:2009)),]
+SWE <- SWE[is.element(SWE$Year,c(1992:2009)),]
+ENGW <- ENGW[is.element(ENGW$Year,c(1992:2009)),]
+CZE <- CZE[is.element(CZE$Year,c(1992:2009)),]
+
+# Transposition des dataframes 
+DEN_reshape <- reshape(DEN, direction = "wide", idvar = "Age", timevar = "Year")
+FR_reshape <- reshape(FR, direction = "wide", idvar = "Age", timevar = "Year")
+EST_reshape <- reshape(EST, direction = "wide", idvar = "Age", timevar = "Year")
+HUN_reshape <- reshape(HUN, direction = "wide", idvar = "Age", timevar = "Year")
+IT_reshape <- reshape(IT, direction = "wide", idvar = "Age", timevar = "Year")
+POL_reshape <- reshape(POL, direction = "wide", idvar = "Age", timevar = "Year")
+SWE_reshape <- reshape(SWE, direction = "wide", idvar = "Age", timevar = "Year")
+ENGW_reshape <- reshape(ENGW, direction = "wide", idvar = "Age", timevar = "Year")
+CZE_reshape <- reshape(CZE, direction = "wide", idvar = "Age", timevar = "Year")
+
+# Retraitement des noms de colonnes pour supprimer les suffixes "qx."
+names(DEN_reshape) <- gsub("qx.", "", names(DEN_reshape))
+names(FR_reshape) <- gsub("qx.", "", names(FR_reshape))
+names(EST_reshape) <- gsub("qx.", "", names(EST_reshape))
+names(HUN_reshape) <- gsub("qx.", "", names(HUN_reshape))
+names(IT_reshape) <- gsub("qx.", "", names(IT_reshape))
+names(POL_reshape) <- gsub("qx.", "", names(POL_reshape))
+names(SWE_reshape) <- gsub("qx.", "", names(SWE_reshape))
+names(ENGW_reshape) <- gsub("qx.", "", names(ENGW_reshape))
+names(CZE_reshape) <- gsub("qx.", "", names(CZE_reshape))
+
+# Calcul des taux d'évolution des table de longévités avec la fonction qx_return présente dans es_calibration_fucntions.R
+DEN_reshape <- qx_return(DEN_reshape)
+FR_reshape <- qx_return(FR_reshape)
+EST_reshape <- qx_return(EST_reshape)
+HUN_reshape <- qx_return(HUN_reshape)
+IT_reshape <- qx_return(IT_reshape)
+POL_reshape <- qx_return(POL_reshape)
+SWE_reshape <- qx_return(SWE_reshape)
+ENGW_reshape <- qx_return(ENGW_reshape)
+CZE_reshape <- qx_return(CZE_reshape)
 
 # Code global
 
@@ -395,6 +483,112 @@ library(lubridate)
 # fichier de functions
 source("es_calibration_functions.R")
 source("data_management.R")
+
+# MSCI data load: source : https://www.msci.com/developed-markets / Data d'extraction des données: 20 aout 2020
+msci <- read.csv(file = 'data/historyindex.csv', sep = ";", header = TRUE)[ ,c('Date', 'Price')]
+msci$Date <- as.Date(msci$Date, "%d-%m-%Y")
+
+# Utilisation des séries temporelle à la place : 
+msci_ts <- ts(msci$Price, start = c(1969,12,31), frequency = 12)
+
+# Importdes données de taux : courbe historique de la bce / taux spot sans risque obligation noté AAA / extration 27/08/2020
+bce_spot_rate_curve_histo <- read.csv(file = 'data/courbe_des_taux_historique_bce.csv', sep = ";", header = TRUE)
+names(bce_spot_rate_curve_histo) <- gsub("YC.B.U2.EUR.4F.G_N_A.SV_C_YM.SR_", "", names(bce_spot_rate_curve_histo))
+
+# importation des données de taux : courbe historique de la banque d'angleterre / taux spot sans risque 
+#glc_spot_rate_curve_histo <- read.csv(file = 'data/courbe_des_taux_historique_bce.csv', sep = ";", header = TRUE)
+
+# Most basic bubble plot
+p1 <- ggplot(msci, aes(x=Date, y=Price)) +
+  geom_area(fill = "lightgray", color="blue") + 
+  xlab("Date") + ylab("Niveau")  + ggtitle("Evolution de la valeur de l'indice MSCI") + theme_classic()
+
+# formule de calcul : (Pt - P(t-1))/P(t-1)
+msci_return <-data.frame(diff(msci_ts)/stats::lag(msci_ts, -1))
+colnames(msci_return) <- c("msci_return")
+
+# anualisation
+#msci_return$msci_return <- 1+msci_return$msci_return
+msci_return_annualized <-data.frame(roll_prod(1+msci_return$msci_return, n =12) - 1)
+colnames(msci_return_annualized) <- c("msci_return_annualized")
+
+p2 <- ggplot(msci_return_annualized, aes(x=index(msci_return_annualized), y=msci_return_annualized)) +
+  geom_line( color="red") + 
+  xlab("index") + ylab("rendement annuel") + theme_classic()
+
+plot_grid(p1, p2, ncol = 1, align = "v")
+
+# Calcul de la VAR historique des données
+histo_VAR <- round(quantile(msci_return_annualized, probs = c(0.005), na.rm = TRUE, type = 1), 4)
+
+histo_ES <- round(mean(msci_return_annualized$msci_return_annualized[msci_return_annualized$msci_return_annualized <= round(quantile(msci_return_annualized, probs = c(0.0115), na.rm = TRUE, type = 1), 4)]- (7.5/100)), 4)
+
+p5 <- ggplot(FR, aes(Age, qx, group=Year, color=Year)) + geom_line(aes(color = factor(Year))) +
+  geom_vline(xintercept = "105-109", colour = "black", linetype = "dashed") +
+   geom_vline(xintercept = "55-59", colour = "black", linetype = "dashed")+
+    ylab("Probabilité de décès") +  scale_x_discrete(limits=c("0","1-4","5-9","10-14","15-19","20-24","25-29","30-34","35-39","40-44","45-49","50-54","55-59","60-64","65-69","70-74","75-79","80-84","85-89","90-94","95-99","100-104","105-109","110+"),guide = guide_axis(n.dodge = 2)) +
+  theme_classic()
+
+p5
+
+join_qx_df <- left_join(DEN_reshape, FR_reshape, by='Age') %>% left_join(EST_reshape, by = 'Age') %>% left_join(HUN_reshape, by = 'Age') %>% left_join(IT_reshape, by = 'Age') %>% left_join(POL_reshape, by = 'Age') %>% left_join(SWE_reshape, by = 'Age') %>% left_join(ENGW_reshape, by = 'Age') %>% left_join(CZE_reshape, by = 'Age')
+
+join_qx_df <- column_to_rownames(join_qx_df, var = "Age")
+
+es_theo <- function(vect, qq){
+  return(ES(qnorm, x = qq, mean = mean(vect), sd = sd(vect)))
+}
+
+var_theo <- function(vect, qq){
+  return(VaR(qnorm, x = qq, mean = mean(vect), sd = sd(vect)))
+}
+
+# Theta choisi tel la var = es
+es_longe <- round(mean(-apply(join_qx_df[1:22,], 1, es_theo, qq=0.0129))*100,2)
+
+var_longe <- round(mean(-apply(join_qx_df[1:22,], 1, var_theo, qq=0.005))*100,2)
+
+dt1 <- melt(join_qx_df["55-59",])
+
+
+p6 <- ggplot(dt1, aes(value)) +
+    geom_density(color="aquamarine2", fill = "aquamarine2", alpha = 0.1) +
+    stat_function(fun = dnorm, args = list(mean(dt1$value), sd(dt1$value)), color = "brown") +
+    geom_vline(xintercept = mean(dt1$value), colour = "#FF3721", linetype = "dashed") +
+    xlab("taux d'évolution") + ylab("frequence en %") + 
+    theme_classic()
+  
+
+p7 <- ggplot(dt1, aes(sample=value)) + stat_qq(color="darkgrey") + stat_qq_line(color = "brown")+ 
+    theme_classic()
+
+plot_grid(p6, p7, ncol = 1, align = "v")
+
+
+p3 <- ggplot(msci_return_annualized, aes(msci_return_annualized)) +
+  geom_histogram( bins = 50, color="darkgreen", fill="white") +
+  xlab("return") + ylab("Nombre d'occurrence") +
+  theme_classic()
+
+p4 <- ggplot(msci_return_annualized, aes(msci_return_annualized)) +
+  geom_density(color="goldenrod2", fill = "gold1", alpha = 0.1) +
+  stat_function(fun = dnorm, args = list(mean(msci_return_annualized$msci_return_annualized), sd(msci_return_annualized$msci_return_annualized)), color = "red") +
+  geom_vline(xintercept = mean(msci_return_annualized$msci_return_annualized), colour = "#FF3721", linetype = "dashed") +
+  xlab("return") + ylab("frequence en %") + 
+  theme_classic()
+
+plot_grid(p3, p4)
+
+dataa = as.matrix(abs(msci_return_annualized[msci_return_annualized<=0]))
+mrlplot(dataa)
+
+threshold = 0.28
+GPD = fpot(dataa,threshold)
+GPD
+
+#threshold + (GPD$param[1]/GPD$param[2])*(((GPD$npp/GPD$nhigh)*(1-alpha[i]))^(-GPD$param[2])-1)
+var_action_extrem = -(threshold - (GPD$param[1]/GPD$param[2])*(1 - ((1/0.005)*(13/136))^GPD$param[2]))#-(7.5/100)
+
 ```
 \newpage
 
