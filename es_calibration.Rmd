@@ -76,13 +76,13 @@ names(bce_spot_rate_curve_histo) <- gsub("YC.B.U2.EUR.4F.G_N_A.SV_C_YM.SR_", "",
 
 # INTRODUCTION
 
-Solvabilité II est une norme prudentielle  entré en vigueur en 2016 pour les assureurs et réassureurs européens déclinée par l'EIOPA (European Insurance and Occupational Pensions Authority). Cette norme établi un ensemble de directives afin de permettre d'identifier, de quantifier et gérer l'ensemble des risques propres à chaque entreprise. L'uniformisation des reportings introduits par la norme permet ainsi une standardisation des bonnes pratiques de gestion de risques, et de restitution d'informations prudentielles à travers l'europe. 
+Solvabilité II est une norme prudentielle  entré en vigueur en 2016 pour les assureurs et réassureurs européens publiée par l'EIOPA (European Insurance and Occupational Pensions Authority). Cette norme établi un ensemble de directives afin de permettre d'identifier, de quantifier et gérer l'ensemble des risques propres à chaque entreprise d'assurance et de réassurance. L'uniformisation des reportings introduits par la norme permet ainsi une standardisation des bonnes pratiques de gestion des risques, et de restitution d'informations prudentielles.
 
-La norme introduit la notion de "best estimate liabilities" qui est la meilleure estimation possible des engagements de l'entreprise par l'entreprise à horizon d'un an. Pour se faire l'entreprise sur la base d’informations à jour et dignes de foi établie les hypothèses économiques et non économiques nécessaires à l'évaluation des flux financiers engendrés par ses engagements tout en tenant compte es garanties financières et options figurant dans les contrats d’assurance et de réassurance. La norme introduit également les notions de le minimum de capital requis (Minimum Capital Requirement – MCR en anglais) et de apital de solvabilité requis (Solvency Capital Requirement – SCR en anglais). Le SCR représente un coussin pour l'assureur, lui permettant en cas de choc extrêmes économiques et non économiques engendrant directement ou indirectement une augmentation de ses engagements affectant ses fonds propres de rester solvables.
+La norme introduit la notion de "best estimate liabilities" qui représente la meilleure estimation possible des engagements de l'entreprise, par l'entreprise à horizon d'un an. Pour se faire l'entreprise sur la base d’informations à jour et dignes de foi établie les hypothèses économiques et non économiques nécessaires à l'évaluation des flux financiers engendrés par ses engagements tout en tenant compte es garanties financières et options figurant dans les contrats d’assurances et de réassurances. La norme introduit également les notions de le minimum de capital requis (Minimum Capital Requirement – MCR en anglais) et de capital de solvabilité requis (Solvency Capital Requirement – SCR en anglais). Le SCR représente un coussin pour l'assureur, lui permettant en cas de chocs économiques et non économiques extrêmes engendrant directement ou indirectement une augmentation de ses engagements affectant ses fonds propres de rester solvables.
 
-L'évaluation du SCR est basé sur un scénario de stress extrême dit bicentenaire, c'est à dire un évènement ayant une probabilté d'occurence de 1/200. D'un autre point de vu, en cas d'évènement extrème une société d'assurance sur 200 au maximum devrait être insolvable. Afin d'établir ce scénario de stress bicentenaire selon la norme solvabilité II, le niveau de choc à appliquer sur les hypothèses économiques et non économiques centrales est calibré en utilisant un modèle de Value at risk (VaR). Dans son article, Tim J. Boonen (2017) effectue une calibration de choc par un modèle de expected shortfall sur quelques risques d'une société d'assurance fictive afin d'étudier les différences engendrées par l'utilisation de l'une ou l'autre des mesures de risque.
+L'évaluation du SCR est basé sur un scénario de stress extrême dit bicentenaire, c'est à dire un évènement ayant une probabilté d'occurence de 1/200. D'un autre point de vu, en cas d'évènements extrêmes, une société d'assurance sur 200 au maximum devrait devenir insolvable. Afin d'établir ce scénario de stress bicentenaire selon la norme solvabilité II, le niveau de choc à appliquer pour chaque hypothèse économique et non économique centrale est calibré en utilisant un modèle de Value at risk (VaR). Dans son article, Tim J. Boonen (2017) effectue une calibration de choc par un modèle basé sur l'expected shortfall. Les chocs sont calibrés sur les facteurs de risques affectant une société d'assurance vie fictive.
 
-Dans ce document, nous implémentons les modèles de calibration des chocs sur les risque actions, longévité et taux par l'expected shortfall présentés dans l'article de Tim J.Boonen "Solvency II solvency capital requirement for life insurance companies based on expected shortfall" (2017).
+Dans ce document, nous implémentons les modèles de calibration des chocs sur les risque action, longévité et taux par l'expected shortfall présentés dans l'article de Tim J.Boonen "Solvency II solvency capital requirement for life insurance companies based on expected shortfall" (2017).
 
 Ce document se présentera comme suit, la première partie sera consacrée aux définitions des mesures de risques value at risk et expected shortfall. Dans la seconde partie nous introduirons la directive de solvabilité II pour le calcul du SCR en utilisant les chocs. L'implémentation du modèle d'expected shortfall pour la colibration  des chocs de taux, action et longévité inteviendra dans la troisiéme partie avec de proposer une méthode de calibration de choc basé sur la théorie des valeurs extrêmes..
  
@@ -90,29 +90,27 @@ Ce document se présentera comme suit, la première partie sera consacrée aux d
 
 # Mesures de risques
 
-Calibration d'un choc au sens Solvabilité II se défini essentiellement par le niveau d'évolution négatif au sens de l'assureur à horizon d'un an d'un facteur de risque avec une probabilité de 1/200. Pour se faire, on utilise la value at risk pour déterminer ce niveau d'évolution du facteur de risque dit bicentenaire. 
+Calibrer un choc au sens de Solvabilité II se défini essentiellement l'évolution négative (pour l'assureur) à horizon d'un an, d'un facteur de risque avec une probabilité de 1/200. O utilise la value at risk pour déterminer ce niveau d'évolution du facteur de risque dans un scénario bicentenaire. 
 
-la value at risk à un niveau $\alpha  \in  (0,1)$ est le $\alpha-$quantile, c'est à dire :
+la value at risk $(VaR)$ à un niveau $\alpha  \in  (0,1)$ est le $\alpha-$quantile, c'est à dire :
 $$ VaR_\alpha(X) = inf\left\{  x \in  \mathbb{R} : (X>x)\leqslant 1-\alpha \right \} $$ 
 Pour toute variable aléatoire $X$ représentant le niveau d'évolution d'un facteur de risque.
-Au sens de la définition de Artzner et al. (1999) une mesure de risque est dite cohérente si elle est:
+Une mesure de risque est dite cohérente au sens de Artzner et al. (1999) si elle est:
 
 1. invariante par la translation 
 2. sous-addtive
 3. homogéne positive
 4. monotone.
  
-Par définition la value at risque n'est pas sous-additive. La sous-addivité est une propriété particulièrement importante car elle implique la de la mesure du risque lorsque les risques sont mutualisés. Ainsi nous introduisons une nouvelle mesure de risque cohérente, l'expected shortfall.
-Soit $ES_\alpha$ l'expected shortfall de niveau $\alpha$:
+Par définition la value at risque n'est systématiquement pas sous-additive. La sous-addivité est une propriété particulièrement importante car elle implique la possibilité de réduction de risque par mutualisation. L'expected shortfall est quant à elle une mesure de risque cohérente.
+Soit $ES_\alpha$ l'expected shortfall $(ES)$ de niveau $\alpha$:
 
 $$ ES_\alpha(X) = \frac{1}{1-\alpha}\int_{\alpha}^{1} VaR_\tau (X)d\tau $$
 Ou plus intuitivement, elle peut se définir comme "l'espérance des pertes au delà de la value at risque", c'est la définition que nous utiliserons dans la suite de ce document : 
 $$ ES_\alpha (X) = E(X \mid  X\geqslant VaR_\alpha(X)) $$
-Contrairement à la value at risk, en plus d'être une mesure de risque cohérente, l'expected shortfall est une mesure qui tient compte des queues de distribution des facteurs de risques mesurés. Cependant, les deux mesures de risque présentent leurs avantages et leurs inconvénients et sont encore discutées dans la littérature scientifique. L'object de ce document n'est pas de trancher en faveur de l'une ou l'autre des mesures de risque comme étant la meilleure, mais de présenter l'utilisation d'une mesure de risque pour la calibration de choc au sens de solvabilité II.
+Contrairement à la value at risk, en plus d'être une mesure de risque cohérente, l'expected shortfall est une mesure qui tient compte des queues de distribution des facteurs de risques mesurés. Cependant, les deux mesures de risque présentent chacune leurs avantages et leurs inconvénients et font encore l'objet de discussions dans la littérature scientifique. L'object de ce document n'est pas de trancher en faveur de l'une ou l'autre des mesures de risque comme étant la meilleure, mais de présenter l'utilisation d'une mesure de risque pour la calibration de choc au sens de solvabilité II.
 
-Afin d'apporter une cohérence dans la comparaison entre la calibration des chocs par value at risk et expected shortfall,
-
-l'auteur défini la fonction strictement croissante $\theta$ telle que $SCR(VaR_{\alpha})=SCR(ES_{\theta(\alpha)}$. Soit :
+Afin d'apporter une cohérence dans la comparaison entre la calibration des chocs par value at risk et expected shortfall, l'auteur défini la fonction strictement croissante $\theta$ telle que $SCR(VaR_{\alpha})=SCR(ES_{\theta(\alpha)}$. Soit :
 
 $$\theta : [0.95,1] \rightarrow [0,1]$$
 $$ SCR(VaR_\alpha)=SCR(ES_\theta) $$
@@ -120,12 +118,12 @@ Cette fonction n'est pas partie intégrante du modèle de calibration de choc, e
 
 # Calcul du Capital de solvabilité requis (SCR) selon le pilier I de solvabilité II
 
-Selon l'EIOPA dans la norme Solvabilité II, le capital de solvabilité requis (SCR) correspond à une value at risque d'un niveau 99,5% à l'horizon d'un an des fonds propres de l'assureur . Le principe de la formule standard est d'appliquer un certain de niveau de choc à chaque facteur de risque pouvant engendrer une perte financière, et d'évaluer l'impact sur ses fonds propres. Ces chocs sont calibrés avec une value at risk à un niveau 99,5% à l'horizon d'un an. L'assureur effectue l'exercice pour chaque module de risque, générant ainsi un SCR pour chaque risque, avant d'agréger l'ensemble des SCR à l'aide d'une matrice de corrélation prédéfinie (par la norme ou propre au profil de risque de l'entreprise) pour produire le SCR total.
+Selon l'EIOPA dans la norme Solvabilité II, le capital de solvabilité requis (SCR) correspond à une value at risque d'un niveau 99,5% à l'horizon d'un an des fonds propres de l'assureur . Le principe de la formule standard est d'appliquer un certain niveau de choc à chaque facteur de risque pouvant engendrer une perte financière, et d'évaluer l'impact sur ses fonds propres. Ces chocs sont calibrés avec une value at risk à un niveau 99,5% à l'horizon d'un an. L'assureur effectue l'exercice pour chaque module de risque, générant ainsi un SCR pour chaque risque, avant d'agréger l'ensemble des SCR à l'aide d'une matrice de corrélation prédéfinie (par la norme ou propre au profil de risque de l'entreprise) pour produire le SCR total.
 
-Pour calculer le SCR total, l'assureur evalue tout d'abord avec des hypothèses économiques et non économiques dit centrales ses engagements, c'est le Best Estimate liabilities (BEL). Après avoir estimé son BEL et son actif (A) en valeur de marché, il détermine le niveau de ses fonds propres (FP) afin de produire son bilan prudentiel selon la formule simplifiée :
+Pour calculer le SCR total, l'assureur evalue tout d'abord ses engagements selon des hypothèses économiques et non économiques dites centrales, c'est le Best Estimate liabilities (BEL). Après avoir estimé son BEL et son actif (A) en valeur de marché, il détermine le niveau de ses fonds propres (FP) afin de produire son bilan prudentiel selon la formule simplifiée :
 
 $$ A - BEL_{central} = FP_{central} $$ 
-Lorsque l'assureur applique un choc négatif à un facteur de risque pour produire une nouvelle hypothèse économique ou non économique qui sera dite stressée avant de réévaluer le BEL et les fonds propres nous obtenons la nouvelle formule suivante :
+Lorsque l'assureur applique un choc négatif à un facteur de risque pour produire une nouvelle hypothèse économique ou non économique qui sera dite stressée avant de réévaluer le BEL, l'actif et les fonds propres nous obtenons la nouvelle formule suivante :
 
 $$ A - BEL_{choc\ du\ risque\ \lambda} = FP_{choc\ du\ risque\ \rho} $$
 L'assureur suite au choc négatif sur une hypothèse évalue un BEL choqué qui sera supérieur au BEL central engendrant ainsi une variation à la baisse de ses fonds propres (central). Cette variation représente le SCR du risque relatif à l'hypothèse choquée. Ainsi :
@@ -134,7 +132,7 @@ $$ \Delta FP_{choc\ du\ risque\ \rho} = FP_{central} - FP_{choc\ du\ risque\ \rh
 Le SCR du risque $\rho$ se défini comme :
 
 $$ SCR_{risque\ \rho} = max \left\{ \Delta FP_{choc\ du\ risque\ \rho}, 0 \right\} $$
-Après avoir déterminé le SCR de chacun des facteurs de risque et sous risque, l'assureur les agrège à l'aide d'une matrice de corrélation des risques pour obtenir le SCR global.
+Après avoir déterminé le SCR de chacun des facteurs de risques et sous-risques, l'assureur les agrège à l'aide de la matrice de corrélation des risques pour obtenir le SCR global.
 
 Dans la suite de ce document nous calibrons les chocs de taux, action et longévité. En effet, les modules de risques de marché et de vie représentent environ 91,1% du SCR de base d'une compagnie d'assurance vie. 
 
@@ -179,7 +177,7 @@ Nous obtenons ainsi la value at risk à 99,5% et l'expected shortfall à 98,5%.
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
 # Calcul de la VAR historique des données
 histo_VAR <- round(quantile(msci_return_annualized, probs = c(0.005), na.rm = TRUE, type = 1), 4)
-histo_VAR = histo_VAR - (7.5/100)
+
 histo_ES <- round(mean(msci_return_annualized$msci_return_annualized[msci_return_annualized$msci_return_annualized <= round(quantile(msci_return_annualized, probs = c(0.0115), na.rm = TRUE, type = 1), 4)]- (7.5/100)), 4)
 ```
 
@@ -188,7 +186,7 @@ histo_ES <- round(mean(msci_return_annualized$msci_return_annualized[msci_return
 
 $\alpha(\%)$ |$\theta(\alpha)(\%)$ | $VaR_{\alpha}(\%)$    |$ES_{\theta(\alpha)}(\%)$|
 -------------|-------------        | -------------         |---------------------    |
-99.5         | 98.85               | `r histo_VAR*100-7.5` | `r histo_ES*100-7.5`    |
+99.5         | 98.85               | `r histo_VAR*100-7.5` | `r histo_ES*100`        |
 
 ## Calibration du choc du risque de taux
 
@@ -206,9 +204,9 @@ p8 <- ggplot(melt_bce_spot_rate_curve_histo, aes(variable, value, group=DATE, co
 
 ## Calibration du choc du risque de longévité.
 
-Pour un assureur vie, un choc à la hausse de la longévité des assurés engendre un choc à la hausse de ses engagements financiers des produits souscris tels que les produits de rente et de retraite. La longévité est quantifiée dans les tables de survies par la probabilité de survivre d'un individu d'âge $x$ de survivre jusqu'à l'âge $x+1$. 
+Pour un assureur vie, un choc à la hausse de la longévité des assurés engendre un choc à la hausse de ses engagements financiers pour les produits de type "rente viagère", dont les prestation à verser sont conditionnées par la survie de l'assuré. La longévité est quantifiée dans des tables de survies. Ces table renseigne sur la probabilité de survie estimée d'un individu d'âge $x$ de survivre jusqu'à l'âge $x+1$. 
 
-Pour calibrer les chocs de taux nous utilisons les données de tables de survies unisex de 9 pays entre 1992 et 2009. Les probabilités de survie sont quantifiées sur des intervalles de 5 ans. Les neufs pays sont le Danemark, la France, l'Angleterre, le Pays de Galles, l'Estonie, l'Italie, la Suède, la Pologne, la Hongrie et la République tchèque.
+Pour calibrer les chocs de taux nous utilisons l'historique de tables de survies unisex de 9 pays, de 1992 à 2009. Les probabilités de survie sont quantifiées sur des intervalles de 5 ans. Les neufs pays sont le Danemark, la France, l'Angleterre, le Pays de Galles, l'Estonie, l'Italie, la Suède, la Pologne, la Hongrie et la République tchèque. Le graphique ci dessous montre l'évolution de la probabilité de décès par âge en France entre 1992 et 2009.
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE, fig.cap= "Evolution de la Table de survie en France entre 1992 et 2009"}
 p5 <- ggplot(FR, aes(Age, qx, group=Year, color=Year)) + geom_line(aes(color = factor(Year))) +
@@ -220,14 +218,14 @@ p5 <- ggplot(FR, aes(Age, qx, group=Year, color=Year)) + geom_line(aes(color = f
 p5
 ```
 
-Nous calculons pour chaque pays le taux de changement annuelle de la probabilité de survie sur un intervalle de 5 ans :
+Nous calculons pour chaque pays le taux de changement annuel de la probabilité de survie sur un intervalle de 5 ans :
 
 $$ PC_{x,x+5} = \frac{P_{x,x+5}^{a}-P_{x,x+5}^{a-1}}{P_{x,x+5}^{a}}$$
 Avec $P_{x,x+5}^{a}$, la probabilité d'un individu d'âge $x$ de survivre à l'âge $x+5$ en année $a$.
 
-Nous faisons l'hypothèse de que le taux de changement annuel de la probabilité de survie suit une loi normale. Ensuite, nous calculons pour chaque intervalle d'age de survie, et pour chaque pays, la value at risk à un niveau de 99,5% d'une loi normale calibrée au données de changement de probabilité de survie correspondant. On obtient donc 9 value at risk pour chaque intervalle d'age de survie (9 pays). La moyenne des value at risk par intervalle d'age de survie donne un choc de longévité par tranche d'âge. Notre choc de longévité unique correspondra à la moyenne des chocs de toutes les tranches d'âge.
+Nous faisons l'hypothèse que le taux de changement annuel de la probabilité de survie suit une loi normale. Ensuite, nous calculons pour chaque intervalle d'âge de survie, et pour chaque pays, la value at risk à un niveau de 99,5% d'une loi normale calibrée au données de changement de probabilité de survie correspondant. On obtient donc 9 value at risk pour chaque intervalle d'age de survie (9 pays). La moyenne des value at risk par intervalle d'age de survie donne un choc de longévité par tranche d'âge. Notre choc de longévité unique correspondra à la moyenne des chocs de toutes les tranches d'âge.
 
-L'expected shortfall à un niveau équivalent à cette value at risk constitue notre choc de longévité pour le calcul du capital de solvabilité requis pour le risque de longévité au sens de solvabilité II.
+L'expected shortfall à un niveau équivalent à cette value at risk constitue notre choc de longévité pour le calcul du capital de solvabilité requis du risque de longévité au sens de solvabilité II.
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
 join_qx_df <- left_join(DEN_reshape, FR_reshape, by='Age') %>% left_join(EST_reshape, by = 'Age') %>% left_join(HUN_reshape, by = 'Age') %>% left_join(IT_reshape, by = 'Age') %>% left_join(POL_reshape, by = 'Age') %>% left_join(SWE_reshape, by = 'Age') %>% left_join(ENGW_reshape, by = 'Age') %>% left_join(CZE_reshape, by = 'Age')
@@ -256,7 +254,7 @@ $\alpha(\%)$   | $\theta(\alpha)(\%)$ | $VaR_{\alpha}(\%)$    |$ES_{\theta(\alph
 99.5           | 98.71                | `r var_longe`         | `r es_longe`            |
 
 
-```{r, echo = FALSE, fig.align = 'center', message=FALSE, fig.cap= "Distribution de l'évolution des taux de longévité"}
+```{r, echo = FALSE, fig.align = 'center', message=FALSE, fig.cap= "Aperçu de la distribution des d'évolution de la probabilité de survie tout âge confondu"}
 dt1 <- melt(join_qx_df["55-59",])
 
 
@@ -296,24 +294,57 @@ p4 <- ggplot(msci_return_annualized, aes(msci_return_annualized)) +
 plot_grid(p3, p4)
 ```
 
-Interressons nous à l
+Le graphique des fréquences ci-dessus présente une queue relativement épaisse par rapport à une loi normale calibrée selon la moyenne et la variance des données. Nous allons utiliser la méthode Peak Over Thresold (POT) de la théorie des valeurs extrêmes pour calculer la value at risque à 99,5%.
 
-Si la MEF est décroissante, cela correspond au cas  Xi < 0 et donc au domaine d'attraction de Weibull, famille des lois à queue fine.
+Nous commençons par explorer le graphique du mean residual life des données afin de choisir le seuil de calibration de la loi de paréto généralisée. 
 
-```{r}
+```{r, echo = FALSE, fig.align = 'center', message=FALSE, fig.cap= " Mean residual plot des taux de rendements annuels négatifs de l'indice MSCI World"}
 library(evd)
-data = as.matrix(abs(msci_return_annualized[msci_return_annualized<=0]))
-mrlplot(data)
-#fitgevpirie <- fgev(as.matrix(msci_return_annualized))
-#fitgevpirie
-GPD = fpot(data,0.28)
+dataa = as.matrix(abs(msci_return_annualized[msci_return_annualized<=0]))
+mrlplot(dataa)
+```
+
+Le mean exces function (MEF) étant décroissante, la loi est du domaine d'attraction de Weibull, qui appartient à la famille des lois à queue fine. Nous choisissons pour la suite un seuil $u$ qui correspond à la plus petite valeur à partir de la quelle la mean excel function est linéaire, tout en tenant compte de la contrainte d'un seuil $u$ élevé et permettant de disposer d'un nombre e dépasssements suffisant pour une bonne estimation des paramètres du modèle. En appliquant la méthode $fpot$ du package $evd$ de $R$ au données de rendements annuels nous obtenons les résultats suivants : 
+
+```{r, echo = FALSE, fig.align = 'center', message=FALSE}
+threshold = 0.28
+GPD = fpot(dataa,threshold)
 GPD
 ```
 
+Le paramètre de forme $shape$ est négatif et confirme bien de domaine d'attration de Weibull de la loi. Le nombre de dépassement pour un seuil fixé à $0.28$ est de 13 sur un total d'observation de `r length(dataa)`, soit 9,56% de l'effectif des observations de perte.
+
+```{r, echo = FALSE, fig.align = 'center', message=FALSE}
+#threshold + (GPD$param[1]/GPD$param[2])*(((GPD$npp/GPD$nhigh)*(1-alpha[i]))^(-GPD$param[2])-1)
+var_action_extrem = -(threshold - (GPD$param[1]/GPD$param[2])*(1 - ((1/0.005)*(13/136))^GPD$param[2]))#-(7.5/100)
+```
+
+
+```{r, echo = FALSE, fig.align = 'center', message=FALSE}
+#threshold + (GPD$param[1]/GPD$param[2])*(((GPD$npp/GPD$nhigh)*(1-alpha[i]))^(-GPD$param[2])-1)
+var_action_extrem_es = (threshold - (GPD$param[1]/GPD$param[2])*(1 - ((1/(1-0.935))*(13/136))^GPD$param[2]))#+(7.5/100)
+es_action_extrem = var_action_extrem_es/(1-GPD$param[2]) - (GPD$param[1]-GPD$param[2])/(1-GPD$param[2])
+```
+
+Rappelons les chocs value at risk et expected shortfall :
+
+$\alpha(\%)$ |$\theta(\alpha)(\%)$ | $VaR_{\alpha}(\%)$    |$ES_{\theta(\alpha)}(\%)$|
+-------------|-------------        | -------------         |---------------------    |
+99.5         | 98.85               | `r histo_VAR*100-7.5` | `r histo_ES*100`        |
+
+
+Ces chocs inclus une majoration en absolue de la value at risk de +7,5%. Les value at risk et expected shortall obtenus par l'application de la méthode POT donne les résultats suivants :
+
+$\alpha(\%)$ |$\theta(\alpha)(\%)$ | $VaR_{\alpha}(\%)$    |$ES_{\theta(\alpha)}(\%)$|
+-------------|-------------        | -------------         |---------------------    |
+99.5         | 98.85               | `r var_action_extrem` | `r es_action_extrem`    |
+
+Rappelons que la value at risk est une estimation avec un certain niveau d'incertitude, cela est la conséquence directe de l'estimation des paramètres de la loi des valeurs extrêmes que sont la $shape$ pour la forme de queue et $scale$ pour l'échelle de la loi.
+Nous pouvons en déduire que la majoration en abolue des +7,5% de la value at risk prescrit par l'EIOPA pour ajustement symétrique permet de tenir également compte des valeurs extrêmes de perte tout en étant plus "prudent" qu'une value at risk obtenue par application de la théorie des valeurs extrêmes. Cela fait encore plus de sens 
 
 # Conclusion
 
-.sdhjqkJSHIZuikjhkQHDQSIuhdqsiu
+Les modèles de calibration "classiques" de choc par la value at risk et l'expected shortfall sont relativement simples d'implémentation et facile de compréhension, ce qui constitue un véritable atout. La value at risk telle que prescrite par l'EIOPA pour la calibration de chocs sur les facteurs de risque, au vu des modèles de calibrations explorés dans ce document, 
 
 \newpage
 
@@ -331,6 +362,8 @@ GPD
 
 6.Données de longévité unisexe des 9 pays utilisées pour la calibration du choc de longévité consultées en 08/2020 : The Human Mortality Database : https://www.mortality.org/ (créer un id et un mot de passe pour accéder aux donées)
 
+7. Cours STA217 Gestion quantitative du risque en finance et assurance du CNAM (2019-2020)
+
 \newpage
 
 # Annexes avec codes, figures en plus etc.).
@@ -338,6 +371,16 @@ GPD
 ## Code R
 
 ```r
+
+# Calibration du choc de longévité
+
+
+
+# Calibration du choc action
+
+
+# Code global
+
 # Libraries
 library(quantmod)
 library(ggplot2)
