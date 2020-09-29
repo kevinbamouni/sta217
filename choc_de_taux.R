@@ -16,7 +16,7 @@ data.active = data.matrix(data[,2:21])
 
 # Annualisation des données journalières puis on centre et réduction des données
 data.active = apply(X = data.active+1, 2,  RcppRoll::roll_prod, n=250)-1
-data.active = scale(data.active)
+data.active = data.matrix(scale(data.active))
 
 # Pour visualiser les niveaux de variances explliqués
 res.pca <- PCA(data.active, scale.unit = FALSE, ncp = 4, graph = TRUE)
@@ -47,12 +47,17 @@ ggplot(vect_propre_plot) +
 theme_bw() + guides(color=guide_legend("Axes principaux"))
 
 #  Choc des composantes principales : Value at risk
-pc_shoc_up = vect_propre * (sqrt(val_propre) * qnorm(.995, mean = 0, sd = 1))
-pc_shoc_down = vect_propre * (sqrt(val_propre) * qnorm(1-0.995, mean = 0, sd = 1))
+pc_shoc_up = vect_propre * (sqrt(val_propre)) * qnorm(.995, mean = 0, sd = 1)
+pc_shoc_down = vect_propre * (sqrt(val_propre)) * qnorm(1-0.995, mean = 0, sd = 1)
 
+pc = as.matrix(data.active) %*% as.matrix(vect_propre)
 
-pc_shoc_up$level*.08354 + pc_shoc_up$slope*.0991 + pc_shoc_up$curvature*.052
+orig = pc %*% t(pc_shoc_up)
 
-data.active[nrow(data.active),] %*% vect_propre$level
-data.active[nrow(data.active),] %*% vect_propre$slope
-data.active[nrow(data.active),] %*% vect_propre$curvature
+quantile(pc[,1], probs = seq(0.995))
+quantile(pc[,2], probs = seq(0.995))
+quantile(pc[,3], probs = seq(0.995))
+
+pc_shoc_up$level*quantile(pc[,1], probs = seq(0.995)) + pc_shoc_up$slope*mean(pc[,2]) + pc_shoc_up$curvature*mean(pc[,3])
+
+pc_shoc_up$level*mean(pc[,1]) + pc_shoc_up$slope*quantile(pc[,2], probs = seq(0.995)) + pc_shoc_up$curvature*quantile(pc[,3], probs = seq(0.995))

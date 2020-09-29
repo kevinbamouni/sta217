@@ -174,22 +174,6 @@ plot_grid(p1, p2, ncol = 1, align = "v")
 ```
 Nous calculons ensuite l'expected shortfall à un niveau de risque correspondant à une value at risk de 99,5% sur la distribution de l'historique de données de rendements annualisés. Nous ajoutons 7,5% à la value at risk pour inclure l'ajustment symétrique ordonné par l'EIOPA dans le "Calibratiion Paper".
 
-```{r, echo = FALSE, fig.align = 'center', message=FALSE, fig.cap= " Distribution empirique des rendement de l'indice MSCI"}
-p3 <- ggplot(msci_return_annualized, aes(msci_return_annualized)) +
-  geom_histogram( bins = 50, color="darkgreen", fill="white") +
-  xlab("return") + ylab("Nombre d'occurrence") +
-  theme_classic()
-
-p4 <- ggplot(msci_return_annualized, aes(msci_return_annualized)) +
-  geom_density(color="goldenrod2", fill = "gold1", alpha = 0.1) +
-  stat_function(fun = dnorm, args = list(mean(msci_return_annualized$msci_return_annualized), sd(msci_return_annualized$msci_return_annualized)), color = "red") +
-  geom_vline(xintercept = mean(msci_return_annualized$msci_return_annualized), colour = "#FF3721", linetype = "dashed") +
-  xlab("return") + ylab("frequence en %") + 
-  theme_classic()
-
-plot_grid(p3, p4)
-```
-
 Nous obtenons ainsi la value at risk à 99,5% et l'expected shortfall à 98,5%.
 
 ```{r, echo = FALSE, fig.align = 'center', message=FALSE}
@@ -292,9 +276,40 @@ plot_grid(p6, p7, ncol = 1, align = "v")
 ```
 
 
-# Théorie des valeurs extrêmes pour la calibration des chocs
+# Théorie des valeurs extrêmes pour la calibration du choc action
 
-.dfqsdfqsdfqsdfsdfqsdfqsfdfqsfdfqsffqsdfsdfsdfsdfsf
+Reprenons la distribution des rendements annuels de l'indice MSCI World Developed Market Price Equity :
+
+```{r, echo = FALSE, fig.align = 'center', message=FALSE, fig.cap= " Distribution empirique des rendements de l'indice MSCI"}
+p3 <- ggplot(msci_return_annualized, aes(msci_return_annualized)) +
+  geom_histogram( bins = 50, color="darkgreen", fill="white") +
+  xlab("return") + ylab("Nombre d'occurrence") +
+  theme_classic()
+
+p4 <- ggplot(msci_return_annualized, aes(msci_return_annualized)) +
+  geom_density(color="goldenrod2", fill = "gold1", alpha = 0.1) +
+  stat_function(fun = dnorm, args = list(mean(msci_return_annualized$msci_return_annualized), sd(msci_return_annualized$msci_return_annualized)), color = "red") +
+  geom_vline(xintercept = mean(msci_return_annualized$msci_return_annualized), colour = "#FF3721", linetype = "dashed") +
+  xlab("return") + ylab("frequence en %") + 
+  theme_classic()
+
+plot_grid(p3, p4)
+```
+
+Interressons nous à l
+
+Si la MEF est décroissante, cela correspond au cas  Xi < 0 et donc au domaine d'attraction de Weibull, famille des lois à queue fine.
+
+```{r}
+library(evd)
+data = as.matrix(abs(msci_return_annualized[msci_return_annualized<=0]))
+mrlplot(data)
+#fitgevpirie <- fgev(as.matrix(msci_return_annualized))
+#fitgevpirie
+GPD = fpot(data,0.28)
+GPD
+```
+
 
 # Conclusion
 
@@ -312,7 +327,7 @@ plot_grid(p6, p7, ncol = 1, align = "v")
 
 4.Base de données de la banque d'angleterre pour les données de "Daily government liability curve (nominal)" consulté en 08/2020, https://www.bankofengland.co.uk/
 
-5.Base de données de l'indice MSCI World : https://www.msci.com/developed-markets
+5.Base de données de l'indice Mosrgan Stanley MSCI World Developed Market Price Equity : https://www.msci.com/developed-markets
 
 6.Données de longévité unisexe des 9 pays utilisées pour la calibration du choc de longévité consultées en 08/2020 : The Human Mortality Database : https://www.mortality.org/ (créer un id et un mot de passe pour accéder aux donées)
 
@@ -354,3 +369,4 @@ source("data_management.R")
 10. library(lubridate)
 11. library(FactoMineR)
 12. library(factoextra)
+13. library(evd)
