@@ -1,0 +1,151 @@
+---
+title: "ir_choc_calibration_with_pca"
+output: pdf_document
+date: '2022-05-21'
+---
+
+## R Markdown : Interest rate term structure choc calibration using Principal component analysis (PCA) (Solvency II default calibration method)
+
+```{r}
+library(FactoMineR)
+library(RcppRoll)
+library(factoextra)
+library(ggplot2)
+library(reshape2)
+library(xts)
+library(reshape2)
+```
+
+```{r}
+########################################################################################################
+# Lecture des données de de la courbe de taux
+data_origin <- read.csv("~/Documents/projet_sta217/sta217/data/GLC Nominal daily data_2005 to 2020.csv", header=TRUE, sep = ";", dec = ",", nrows = 100)
+########################################################################################################
+# Lecture des données de variation de la courbe de taux
+data <- read.csv("data/GLC_Nominal_daily_data_2005_to_2020_return.csv", header=TRUE, sep = ";", dec = ",", nrows = 100)
+```
+
+```{r}
+# Représentation des données :
+ggplot(melt(data[,1:26]), aes(DATE, value, group=variable, color=variable)) + geom_line(show.legend = TRUE)
+```
+```{r}
+# scale les colonnes des données : centre et réduit les données de chaque colonne individuellement 
+# chaque maturité est centrée et réduite individuellement.
+# On peut faire l'hypothèse de la normalité (0,1) des variables qui sont des rendements journaliers des taux, centrés et réduits
+scaledSpotPctDiff <- scale(data[,2:26])
+each_column_mean <- apply(data[,2:26], 2, mean)
+each_column_var <- apply(data[,2:26], 2, var)
+# Représentation des données :
+matplot(as.data.frame(scaledSpotPctDiff),type="l", ylab = "scaled IR percentage diff")
+```
+```{r}
+# Decomposition en elements propres (vecteur et valeurs propres) de la matrice des correlations.
+# Chaque variable étant centrée et réduite : la matrice des corrélations est égale à celle de des covariances.
+pca <- eigen(cor(scaledSpotPctDiff))
+
+#res.pca <- PCA(scaledSpotPctDiff, scale.unit = FALSE, graph = TRUE, ncp = 25)
+# Valeurs propres résultantes de la décomposition en element propres : variances des composantes principales
+valeurs_propres <- pca$values
+valeurs_propres <- replace(valeurs_propres, valeurs_propres<0, 0)
+
+# Vecteurs propres résultantes de la décomposition en éléments propres : 
+vecteurs_propres <- pca$vectors
+
+# Niveau de Variance expliquée par PC : pourcentage de variance expliquée par chaque composantes principales
+variance_explic <- pca$values/sum(pca$values)
+
+# Calcul des composantes principales : les composantes principales sont les représentation des données initiales sur des nouvelles variables indépendantes (non correlées)
+composantes_principales <- data.matrix(scaledSpotPctDiff) %*% vecteurs_propres
+matplot(t(composantes_principales), type = "l", ylab = "composantes_principales")
+
+# Les composantes principales étant des variables indépendantes, on peut calculer les Value at risk individuelles de chaque composante principale
+# qu'on ramenera ensuite dans le plan des variables initiales (des données initiales).
+# En supposant les composantes principales de loi normale (TODO : test de normalité sur chaque composante principale)
+value_at_risk <- valeurs_propres^.5 * qnorm(.995)
+
+# Var historique : peut etre calculée également.
+# On ramene les value at risk dans le referentiel des variables initiales des données initiales/ (si det(A) != 0, so inverse exists)
+scaled_choc_of_rate <- value_at_risk %*% solve(vecteurs_propres)
+matplot(t(scaled_choc_of_rate), type = "l", ylab = "scaled_choc_of_rate")
+# Unscaled the choc rate
+unscaled_choc_of_rate = scaled_choc_of_rate * each_column_var + each_column_mean
+matplot(t(unscaled_choc_of_rate), type = "l", ylab = "unscaled_choc_of_rate")
+
+# to obtain the choqued interest rate term structure based on the spot interest rate term structure <_-_> (choc_of_rate + 1) * spot interest rate 
+choqued_term_structure <- data[1,2:26] * (1 + unscaled_choc_of_rate)
+matplot(t(data[1,2:26]), type = "l", ylab = "most_recent_ir_term_structure")
+matplot(t(choqued_term_structure), type = "l", ylab = "choqued_term_structure")
+#
+```
+
+```{r}
+# Develop the shocked pc's and the rateShocks
+# pcaShockUp <- pca$vectors * eigenGoodForm^.5 * qnorm(.995)
+# rateShockUp <- (1+pcaShockUp*stdevRateGoodForm *sqrt(12))* lastRateGoodForm
+```
+
+```{r}
+# Représentation des données :
+data_plot =  melt(data[,1:21])
+ggplot(data_plot, aes(DATE, value, group=variable, color=variable)) + geom_line(show.legend = TRUE)
+
+# Elimination de la colonne date pour ne traiter que les taux de return
+data.active = data.matrix(data[,2:21])
+
+# Annualisation des données journalières puis on centre et réduction des données
+# data.active = apply(X = data.active+1, 2,  RcppRoll::roll_prod, n=250)-1
+data.active = data.matrix(scale(data.active))
+```
+
+
+```{r}
+# Pour visualiser les niveaux de variances explliqués
+res.pca <- PCA(data.active, scale.unit = FALSE, ncp = 4, graph = TRUE)
+fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 50))
+get_eigenvalue(res.pca)
+```
+
+
+```{r}
+# Choix du nombre de composantes principales / suite aux résultats de l'ACP donnant les nivaux de variance explique par chaque composante
+n_pc = 3
+
+# Valeurs propres et vecteurs propres des donnees originales annualisees
+vectval_propres = eigen(cov(data.active))
+
+vect_propre = vectval_propres$vectors[,1:n_pc]
+colnames(vect_propre) <- c('level', 'slope', 'curvature')
+vect_propre = as.data.frame(vect_propre)
+
+val_propre = vectval_propres$values[1:n_pc]
+
+# Plot des valeurs propres et des vecteurs propres
+vect_propre_plot = vect_propre
+vect_propre_plot$maturite=c(1:ncol(data.active))
+ggplot(vect_propre_plot) + 
+  geom_line(aes(x = maturite, y = level,  color = "red")) + geom_point(aes(x = maturite, y = level, color = "red")) +
+  geom_line(aes(x = maturite, y = slope, color = "blue")) + geom_point(aes(x = maturite, y = slope, color = "blue")) +
+  geom_line(aes(x = maturite, y = curvature, color = "green")) + geom_point(aes(x = maturite, y = curvature, color = "green")) +
+  scale_color_manual(labels = c("level", "slope", "curvature"), values = c("red", "blue", "green")) + 
+  labs(title = "COMPOSANTES PRINCIPALES", x = "Maturites", y ="Valeurs")
+theme_bw() + guides(color=guide_legend("Axes principaux"))
+```
+
+
+```{r}
+#  Choc des composantes principales : Value at risk
+pc_shoc_up = vect_propre * (sqrt(val_propre)) * qnorm(.995, mean = 0, sd = 1)
+pc_shoc_down = vect_propre * (sqrt(val_propre)) * qnorm(1-0.995, mean = 0, sd = 1)
+pc_shoc_down = vect_propre * qnorm(1-0.995, mean = 0, sd = 1)
+
+pc = as.matrix(data.active) %*% as.matrix(vect_propre)
+
+orig = pc %*% t(pc_shoc_up)
+```
+
+```{r}
+pc_shoc_down
+pc
+```
+

@@ -49,7 +49,6 @@ theme_bw() + guides(color=guide_legend("Axes principaux"))
 #  Choc des composantes principales : Value at risk
 pc_shoc_up = vect_propre * (sqrt(val_propre)) * qnorm(.995, mean = 0, sd = 1)
 pc_shoc_down = vect_propre * (sqrt(val_propre)) * qnorm(1-0.995, mean = 0, sd = 1)
-
 pc_shoc_down = vect_propre * qnorm(1-0.995, mean = 0, sd = 1)
 
 pc = as.matrix(data.active) %*% as.matrix(vect_propre)
